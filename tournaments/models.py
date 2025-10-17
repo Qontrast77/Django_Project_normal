@@ -1,4 +1,7 @@
 from django.db import models
+from django.contrib.auth.models import User
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
 
 class Team(models.Model):
     name = models.TextField("Название команды")
@@ -15,6 +18,7 @@ class Player(models.Model):
     name = models.TextField("Имя игрока")
     nickname = models.TextField("Никнейм")
     team = models.ForeignKey("Team", verbose_name="Команда", on_delete=models.CASCADE, null=True)
+    user = models.OneToOneField("auth.User", verbose_name="Пользователь", on_delete=models.CASCADE, null=True, blank=True)
     
     class Meta:
         verbose_name = "Игрок"
@@ -72,3 +76,78 @@ class Match(models.Model):
         else:
             self.winner = None  # ничья
         super().save(*args, **kwargs)
+
+
+# Сигнал для автоматического создания пользователя при создании игрока
+@receiver(post_save, sender=Player)
+def create_user_for_player(sender, instance, created, **kwargs):
+    if created and not instance.user:
+        # Формируем username из имени и никнейма
+        username_base = f"{instance.name}_{instance.nickname}".replace(' ', '_').lower()
+        
+        # Проверяем, существует ли пользователь с таким username
+        username = username_base
+        counter = 1
+        while User.objects.filter(username=username).exists():
+            username = f"{username_base}_{counter}"
+            counter += 1
+        
+        try:
+            # Создаем email на основе username
+            email = f"{username}@example.com"
+            
+            # Создаем пользователя без пароля
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=None,  # Пароль не устанавливаем
+                first_name=instance.name
+            )
+            
+            # Связываем игрока с созданным пользователем
+            instance.user = user
+            instance.save()
+            
+        except Exception as e:
+            print(f"Ошибка при создании пользователя для игрока: {e}")
+
+# Сигнал для обновления пользователя при изменении игрока
+@receiver(post_save, sender=Player)
+def update_user_for_player(sender, instance, created, **kwargs):
+    if not created and instance.user:
+        try:
+            user = instance.user
+            
+            # Обновляем имя пользователя
+            user.first_name = instance.name
+            
+            # Обновляем username на основе имени и никнейма
+            new_username_base = f"{instance.name}_{instance.nickname}".replace(' ', '_').lower()
+            
+            if user.username != new_username_base:
+                # Проверяем, не занят ли новый username
+                if not User.objects.filter(username=new_username_base).exclude(id=user.id).exists():
+                    user.username = new_username_base
+                else:
+                    # Если занят, добавляем цифру
+                    counter = 1
+                    while User.objects.filter(username=f"{new_username_base}_{counter}").exclude(id=user.id).exists():
+                        counter += 1
+                    user.username = f"{new_username_base}_{counter}"
+            
+            # Обновляем email
+            user.email = f"{user.username}@example.com"
+            
+            user.save()
+            
+        except Exception as e:
+            print(f"Ошибка при обновлении пользователя для игрока: {e}")
+
+# Сигнал для удаления пользователя при удалении игрока
+@receiver(post_delete, sender=Player)
+def delete_user_for_player(sender, instance, **kwargs):
+    try:
+        if instance.user:
+            instance.user.delete()
+    except Exception as e:
+        print(f"Ошибка при удалении пользователя для игрока: {e}")
