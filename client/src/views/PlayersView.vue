@@ -18,7 +18,6 @@ async function fetchPlayers() {
         error.value = null;
         const response = await axios.get("/api/players/");
         players.value = response.data;
-        console.log('Players loaded:', players.value); // Отладка
     } catch (err) {
         console.error('Ошибка загрузки игроков:', err);
         error.value = err.response?.data || 'Не удалось загрузить игроков';
@@ -87,7 +86,6 @@ async function onPlayerAdd() {
     
     await fetchPlayers();
     
-    // Сброс формы
     playerToAdd.value = {
         name: '',
         nickname: '',
@@ -173,42 +171,32 @@ async function onUpdatePlayer() {
   }
 }
 
-// Улучшенная функция для получения URL изображения
+// Функция для получения URL изображения с timestamp (как в TeamsView)
 function getImageUrl(imagePath) {
   if (!imagePath) return null;
   
-  console.log('Image path:', imagePath); // Отладка
-  
-  // Если это уже полный URL или data URL
   if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
     return imagePath;
   }
   
-  // Если путь начинается с /, оставляем как есть
-  if (imagePath.startsWith('/')) {
-    return imagePath;
+  let url = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+  
+  // Добавляем timestamp для предотвращения кэширования (как в TeamsView)
+  const timestamp = Date.now();
+  if (url.includes('?')) {
+    url += `&t=${timestamp}`;
+  } else {
+    url += `?t=${timestamp}`;
   }
   
-  // Если это просто имя файла, добавляем /media/
-  // Django по умолчанию сохраняет файлы в media
-  return `/media/${imagePath}`;
+  return url;
 }
 
-// Улучшенный обработчик ошибок изображений
-function handleImageError(event, player) {
-  console.warn('Не удалось загрузить фото для игрока:', player.name, 'URL:', event.target.src);
-  
-  // Скрываем сломанное изображение
+// Обработчик ошибок изображений (как в TeamsView)
+function handleImageError(event) {
+  console.log('Изображение не загружено:', event.target.src);
   event.target.style.display = 'none';
-  
-  // Показываем placeholder
-  const parent = event.target.parentElement;
-  const placeholder = parent.querySelector('.placeholder-photo');
-  if (placeholder) {
-    placeholder.style.display = 'flex';
-  }
-  
-  event.target.onerror = null; // Предотвращаем бесконечный цикл
+  event.target.onerror = null;
 }
 
 function getTeamName(teamId) {
@@ -216,11 +204,6 @@ function getTeamName(teamId) {
   if (typeof teamId === 'object') return teamId.name;
   const team = teams.value.find(t => t.id === teamId);
   return team ? team.name : 'Команда не найдена';
-}
-
-// Функция для проверки наличия изображения
-function hasValidImage(player) {
-  return player.photo && player.photo.trim() !== '';
 }
 </script>
 
@@ -311,7 +294,7 @@ function hasValidImage(player) {
             <img 
               :src="playerImageUrl" 
               alt="Предпросмотр фото"
-              class="img-thumbnail"
+              class="img-thumbnail rounded-circle"
               style="max-width: 200px; max-height: 200px; object-fit: cover;"
             />
           </div>
@@ -337,33 +320,18 @@ function hasValidImage(player) {
             <div class="player-card card h-100">
               <div class="card-body text-center">
                 <!-- Фото игрока -->
-                <div class="player-photo mb-3" style="width: 120px; height: 120px; margin: 0 auto; position: relative;">
-                  <!-- Placeholder (всегда присутствует, но может быть скрыт) -->
-                  <div 
-                    class="placeholder-photo bg-light rounded d-flex align-items-center justify-content-center" 
-                    :style="{
-                      width: '100%', 
-                      height: '100%',
-                      display: hasValidImage(player) ? 'none' : 'flex'
-                    }"
-                  >
-                    <i class="bi bi-person-fill text-muted" style="font-size: 3rem;"></i>
-                  </div>
-                  
-                  <!-- Изображение игрока -->
+                <div class="player-photo mb-3" style="width: 120px; height: 120px; margin: 0 auto;">
                   <img 
-                    v-if="hasValidImage(player)"
+                    v-if="getImageUrl(player.photo)" 
                     :src="getImageUrl(player.photo)" 
                     :alt="player.name"
-                    class="img-fluid rounded"
-                    style="width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0;"
-                    @error="(e) => handleImageError(e, player)"
-                    @load="console.log('Фото загружено:', player.name)"
+                    class="img-fluid rounded-circle"
+                    style="width: 100%; height: 100%; object-fit: cover;"
+                    @error="handleImageError"
+                    :key="player.id + (player.photo ? player.photo : '')"
                   />
-                  
-                  <!-- Отладочная информация (можно убрать после отладки) -->
-                  <div v-if="player.photo" class="debug-info small text-muted mt-1">
-                    <small>{{ player.photo }}</small>
+                  <div v-else class="placeholder-photo bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 100%; height: 100%;">
+                    <i class="bi bi-person-fill text-muted" style="font-size: 3rem;"></i>
                   </div>
                 </div>
                 
@@ -411,7 +379,7 @@ function hasValidImage(player) {
 
   <!-- Модальное окно редактирования -->
   <div class="modal fade" id="editPlayerModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
           <h1 class="modal-title fs-5">
@@ -428,7 +396,7 @@ function hasValidImage(player) {
         <div class="modal-body">
           <form @submit.prevent.stop="onUpdatePlayer" enctype="multipart/form-data">
             <div class="row g-3">
-              <div class="col-md-6">
+              <div class="col-6">
                 <div class="form-floating">
                   <input
                     type="text"
@@ -436,12 +404,11 @@ function hasValidImage(player) {
                     v-model="playerToEdit.name"
                     placeholder="Имя игрока"
                     :disabled="isLoading"
-                    required
                   />
                   <label>Имя игрока</label>
                 </div>
               </div>
-              <div class="col-md-6">
+              <div class="col-6">
                 <div class="form-floating">
                   <input
                     type="text"
@@ -449,7 +416,6 @@ function hasValidImage(player) {
                     v-model="playerToEdit.nickname"
                     placeholder="Никнейм"
                     :disabled="isLoading"
-                    required
                   />
                   <label>Никнейм</label>
                 </div>
@@ -469,26 +435,18 @@ function hasValidImage(player) {
               <!-- Текущее фото -->
               <div class="col-12" v-if="playerToEdit.photo">
                 <p class="text-muted mb-2">Текущее фото:</p>
-                <div style="width: 150px; height: 150px; margin: 0 auto; position: relative;">
-                  <div 
-                    class="placeholder-photo bg-light rounded d-flex align-items-center justify-content-center" 
-                    :style="{
-                      width: '100%', 
-                      height: '100%',
-                      display: hasValidImage(playerToEdit) ? 'none' : 'flex'
-                    }"
-                  >
-                    <i class="bi bi-person-fill text-muted" style="font-size: 2.5rem;"></i>
-                  </div>
-                  
+                <div style="width: 150px; height: 150px; margin: 0 auto;">
                   <img 
-                    v-if="hasValidImage(playerToEdit)"
+                    v-if="getImageUrl(playerToEdit.photo)" 
                     :src="getImageUrl(playerToEdit.photo)" 
                     :alt="playerToEdit.name"
-                    class="img-thumbnail"
-                    style="width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0;"
-                    @error="(e) => handleImageError(e, playerToEdit)"
+                    class="img-thumbnail rounded-circle"
+                    style="width: 100%; height: 100%; object-fit: cover;"
+                    @error="handleImageError"
                   />
+                  <div v-else class="placeholder-photo bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 100%; height: 100%;">
+                    <i class="bi bi-person-fill text-muted" style="font-size: 2.5rem;"></i>
+                  </div>
                 </div>
               </div>
               
@@ -508,12 +466,12 @@ function hasValidImage(player) {
               </div>
               
               <!-- Предпросмотр нового фото -->
-              <div v-if="playerEditImageUrl" class="col-12 mt-3">
+              <div class="col-12" v-if="playerEditImageUrl">
                 <p class="text-muted mb-2">Предпросмотр нового фото:</p>
                 <img 
                   :src="playerEditImageUrl" 
                   alt="Предпросмотр нового фото"
-                  class="img-thumbnail d-block mx-auto"
+                  class="img-thumbnail rounded-circle d-block mx-auto"
                   style="max-width: 150px; max-height: 150px; object-fit: cover;"
                 />
               </div>
@@ -579,15 +537,6 @@ function hasValidImage(player) {
   border-bottom: 2px solid rgba(0,0,0,0.125);
 }
 
-.debug-info {
-  font-size: 0.7rem;
-  word-break: break-all;
-  background: #f8f9fa;
-  padding: 2px 5px;
-  border-radius: 3px;
-  margin-top: 5px;
-}
-
 @media (max-width: 768px) {
   .player-photo {
     width: 100px !important;
@@ -596,10 +545,6 @@ function hasValidImage(player) {
   
   .placeholder-photo i {
     font-size: 2.5rem !important;
-  }
-  
-  .debug-info {
-    display: none; /* Скрываем отладочную информацию на мобильных */
   }
 }
 </style>

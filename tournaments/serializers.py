@@ -1,3 +1,4 @@
+# serializers.py
 from rest_framework import serializers
 from .models import Team, Player, Tournament, Match, TournamentCategory
 
@@ -12,7 +13,7 @@ class PlayersCRSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Player
-        fields = ['id', 'name', 'nickname', 'team']
+        fields = ['id', 'name', 'nickname', 'team', 'photo']
 
 class TournamentCategoriesCRSerializer(serializers.ModelSerializer):
     class Meta:
@@ -45,7 +46,7 @@ class TeamsUDSerializer(serializers.ModelSerializer):
 class PlayersUDSerializer(serializers.ModelSerializer):
     class Meta:
         model = Player
-        fields = ['id', 'name', 'nickname', 'team']
+        fields = ['id', 'name', 'nickname', 'team', 'photo']
 
 class TournamentCategoriesUDSerializer(serializers.ModelSerializer):
     class Meta:
@@ -56,23 +57,8 @@ class TournamentsUDSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tournament
         fields = ['id', 'name', 'category', 'start_date', 'end_date']
-        extra_kwargs = {
-            'name': {'required': False},
-            'category': {'required': False},
-            'start_date': {'required': False},
-            'end_date': {'required': False},
-        }
 
 class MatchesUDSerializer(serializers.ModelSerializer):
     class Meta:
         model = Match
         fields = ['id', 'tournament', 'team1', 'team2', 'match_date', 'team1_score', 'team2_score', 'winner']
-        extra_kwargs = {
-            'tournament': {'required': False},
-            'team1': {'required': False},
-            'team2': {'required': False},
-            'match_date': {'required': False},
-            'team1_score': {'required': False},
-            'team2_score': {'required': False},
-            'winner': {'required': False},
-        }

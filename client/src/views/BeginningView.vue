@@ -15,6 +15,7 @@ const loadTime = ref(0);
 // Данные для модального окна
 const showImageModal = ref(false);
 const currentImageUrl = ref('');
+const currentPlayerName = ref('');
 
 // Оптимизированная загрузка данных
 async function loadAllData() {
@@ -58,8 +59,9 @@ async function loadAllData() {
 }
 
 // Функции для модального окна
-function openImageModal(imageUrl) {
+function openImageModal(imageUrl, playerName = '') {
   currentImageUrl.value = imageUrl;
+  currentPlayerName.value = playerName;
   showImageModal.value = true;
   
   // Блокируем прокрутку body при открытии модального окна
@@ -69,6 +71,7 @@ function openImageModal(imageUrl) {
 function closeImageModal() {
   showImageModal.value = false;
   currentImageUrl.value = '';
+  currentPlayerName.value = '';
   
   // Восстанавливаем прокрутку body
   document.body.style.overflow = '';
@@ -155,6 +158,32 @@ function getTeamPlayersCount(teamId) {
     const playerTeamId = player.team?.id || player.team;
     return playerTeamId === teamId;
   }).length;
+}
+
+// Функция для получения URL изображения игрока
+function getPlayerPhoto(photoPath) {
+  if (!photoPath) return null;
+  if (photoPath.startsWith('http') || photoPath.startsWith('data:')) {
+    return photoPath;
+  }
+  let url = photoPath.startsWith('/') ? photoPath : `/${photoPath}`;
+  
+  // Добавляем timestamp для принудительного обновления изображения
+  const timestamp = Date.now();
+  if (url.includes('?')) {
+    url += `&_=${timestamp}`;
+  } else {
+    url += `?_=${timestamp}`;
+  }
+  
+  return url;
+}
+
+// Обработчик ошибок изображений
+function handleImageError(event) {
+  console.log('Изображение не загружено:', event.target.src);
+  event.target.style.display = 'none';
+  event.target.onerror = null;
 }
 
 // Загрузка при монтировании
@@ -262,7 +291,7 @@ onMounted(() => {
                       <div class="col-4" style="text-align: right;">
                         <img 
                           :src="getTeamLogo(team.logo)" 
-                          @click="openImageModal(getTeamLogo(team.logo))" 
+                          @click="openImageModal(getTeamLogo(team.logo), team.name)" 
                           style="max-width:100px; border-radius:20px; max-height:100px; height:100px; cursor: pointer; object-fit: cover;"
                           :alt="team.name"
                           class="team-logo"
@@ -286,6 +315,71 @@ onMounted(() => {
               <router-link to="/teams" class="btn btn-outline-primary">
                 <i class="bi bi-arrow-right me-2"></i>
                 Показать все команды ({{ teams.length }})
+              </router-link>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Блок игроков -->
+      <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+          <h2>Игроки</h2>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <template v-for="player in players.slice(0, 4)" :key="player.id">
+              <div class="col-md-6 mb-3">
+                <div class="card player-card">
+                  <div class="card-body">
+                    <div class="row">
+                      <div class="col-8">
+                        <h5 class="card-title">{{ player.name }}</h5>
+                        <p class="card-text text-primary">
+                          <strong>"{{ player.nickname }}"</strong>
+                        </p>
+                        <p class="card-text">
+                          <small class="text-muted">
+                            <i class="bi bi-people me-1"></i>
+                            {{ getTeamName(player.team) }}
+                          </small>
+                        </p>
+                      </div>
+                      <div class="col-4" style="text-align: right;">
+                        <div v-if="getPlayerPhoto(player.photo)" class="player-photo-container">
+                          <img 
+                            :src="getPlayerPhoto(player.photo)" 
+                            @click="openImageModal(getPlayerPhoto(player.photo), player.name)" 
+                            style="max-width:100px; border-radius:20px; max-height:100px; height:100px; cursor: pointer; object-fit: cover;"
+                            :alt="player.name"
+                            class="player-photo"
+                            @error="handleImageError"
+                          />
+                        </div>
+                        <div v-else class="placeholder-photo bg-light rounded d-flex align-items-center justify-content-center" 
+                             style="width:100px; height:100px; border-radius:20px; cursor: pointer;"
+                             @click="openImageModal(null, player.name)">
+                          <i class="bi bi-person-fill text-muted" style="font-size: 2rem;"></i>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
+            
+            <!-- Состояние когда игроков нет -->
+            <div v-if="players.length === 0" class="col-12 text-center py-4">
+              <i class="bi bi-people display-4 text-muted d-block mb-3"></i>
+              <h5 class="text-muted">Игроков пока нет</h5>
+              <p class="text-muted">Добавьте игроков через раздел "Игроки"</p>
+            </div>
+
+            <!-- Кнопка просмотра всех игроков -->
+            <div v-if="players.length > 4" class="col-12 text-center mt-3">
+              <router-link to="/players" class="btn btn-outline-success">
+                <i class="bi bi-arrow-right me-2"></i>
+                Показать всех игроков ({{ players.length }})
               </router-link>
             </div>
           </div>
@@ -412,11 +506,19 @@ onMounted(() => {
         <button class="image-modal-close" @click="closeImageModal">
           <i class="bi bi-x-lg"></i>
         </button>
+        <div v-if="currentPlayerName" class="image-modal-title">
+          <h4>{{ currentPlayerName }}</h4>
+        </div>
         <img 
+          v-if="currentImageUrl" 
           :src="currentImageUrl" 
-          alt="Увеличенное изображение"
+          :alt="currentPlayerName || 'Изображение'"
           class="image-modal-img"
         />
+        <div v-else class="no-image-placeholder">
+          <i class="bi bi-person-fill" style="font-size: 4rem;"></i>
+          <p>Изображение отсутствует</p>
+        </div>
         <div class="image-modal-controls">
           <button class="btn btn-secondary" @click="closeImageModal">
             Закрыть
@@ -582,6 +684,37 @@ onMounted(() => {
 .team-logo:hover {
   transform: scale(1.05);
   box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+/* Блок игроков */
+.player-card {
+  transition: all 0.3s ease;
+  border: 1px solid #e9ecef;
+}
+
+.player-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.player-photo {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: 2px solid #e9ecef;
+}
+
+.player-photo:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.placeholder-photo {
+  transition: all 0.3s ease;
+  border: 2px dashed #dee2e6;
+}
+
+.placeholder-photo:hover {
+  border-color: #28a745;
+  background-color: #f8f9fa;
 }
 
 /* Секции */
@@ -871,11 +1004,31 @@ onMounted(() => {
   background: rgba(0, 0, 0, 0.9);
 }
 
+.image-modal-title {
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.image-modal-title h4 {
+  margin: 0;
+  color: #2c3e50;
+}
+
 .image-modal-img {
   max-width: 100%;
   max-height: 70vh;
   object-fit: contain;
   border-radius: 10px;
+  margin-bottom: 15px;
+}
+
+.no-image-placeholder {
+  text-align: center;
+  padding: 40px;
+  color: #6c757d;
+}
+
+.no-image-placeholder i {
   margin-bottom: 15px;
 }
 
@@ -947,12 +1100,14 @@ onMounted(() => {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   }
   
-  .team-card .row {
+  .team-card .row,
+  .player-card .row {
     flex-direction: column;
     text-align: center;
   }
   
-  .team-card .col-4 {
+  .team-card .col-4,
+  .player-card .col-4 {
     text-align: center !important;
     margin-top: 15px;
   }
