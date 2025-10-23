@@ -5,6 +5,7 @@ from django.dispatch import receiver
 
 class Team(models.Model):
     name = models.TextField("Название команды")
+    logo = models.ImageField("Логотип команды", null=True, blank=True, upload_to="tournaments_img")
     created_at = models.DateTimeField("Дата создания", auto_now_add=True)
     
     class Meta:
@@ -17,7 +18,8 @@ class Team(models.Model):
 class Player(models.Model):
     name = models.TextField("Имя игрока")
     nickname = models.TextField("Никнейм")
-    team = models.ForeignKey("Team", verbose_name="Команда", on_delete=models.CASCADE, null=True)
+    photo = models.ImageField("Фото игрока", null=True, blank=True, upload_to="tournaments_img")
+    team = models.ForeignKey("Team", verbose_name="Команда", on_delete=models.CASCADE, null=True, blank=True)
     user = models.OneToOneField("auth.User", verbose_name="Пользователь", on_delete=models.CASCADE, null=True, blank=True)
     
     class Meta:
