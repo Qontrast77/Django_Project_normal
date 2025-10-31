@@ -250,9 +250,9 @@ onMounted(() => {
         </template>
         <template v-else>
           <i class="bi bi-person-circle me-1"></i>
-          Привет, <strong>{{ userInfo.player_nickname || userInfo.username }}</strong>
+          Привет, ты авторизован как <strong>{{ userInfo.player_nickname || userInfo.username }}</strong>
           <span v-if="userInfo.team_name" class="team-info">
-            • Команда: <strong>{{ userInfo.team_name }}</strong>
+            Твоя команда: <strong>{{ userInfo.team_name }}</strong>
           </span>
         </template>
       </div>
