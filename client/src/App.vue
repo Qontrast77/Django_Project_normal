@@ -1,10 +1,25 @@
 <script setup>
 import axios from 'axios';
 import Cookies from 'js-cookie';
-import { onBeforeMount } from 'vue';
+import { onBeforeMount, computed } from 'vue';
+import { useUserStore } from '@/stores/user_store';
+import { storeToRefs } from "pinia";
 
-// Убираем глобальную загрузку данных из App.vue
-// Данные будут загружаться только в конкретных компонентах где нужны
+const userStore = useUserStore();
+const { userInfo } = storeToRefs(userStore);
+
+// Проверка, показывать ли вкладку "Категории"
+const showCategoriesTab = computed(() => {
+  return userInfo.value && userInfo.value.is_authenticated && userInfo.value.is_staff;
+});
+
+// Получаем никнейм игрока для отображения
+const playerNickname = computed(() => {
+  if (userInfo.value && userInfo.value.is_authenticated && !userInfo.value.is_staff) {
+    return userInfo.value.player_nickname || userInfo.value.username;
+  }
+  return null;
+});
 
 onBeforeMount(() => {
   // Настраиваем axios только один раз
@@ -54,7 +69,8 @@ onBeforeMount(() => {
                 <i class="bi bi-trophy me-1"></i>Турниры
               </router-link>
             </li>
-            <li class="nav-item">
+            <!-- Вкладка "Категории" только для админов -->
+            <li v-if="showCategoriesTab" class="nav-item">
               <router-link class="nav-link" to="/categories">
                 <i class="bi bi-tags me-1"></i>Категории
               </router-link>
@@ -67,6 +83,20 @@ onBeforeMount(() => {
           </ul>
           
           <ul class="navbar-nav">
+            <!-- Информация о пользователе -->
+            <li v-if="userInfo && userInfo.is_authenticated" class="nav-item">
+              <div class="nav-link user-info">
+                <template v-if="userInfo.is_staff">
+                  <i class="bi bi-shield-check me-1"></i>
+                  <strong>Администратор</strong>
+                </template>
+                <template v-else>
+                  <i class="bi bi-person-circle me-1"></i>
+                  <strong>{{ playerNickname }}</strong>
+                </template>
+              </div>
+            </li>
+            
             <li class="nav-item">
               <a class="nav-link" href="/admin" target="_blank">
                 <i class="bi bi-gear me-1"></i>Админка
@@ -105,8 +135,30 @@ onBeforeMount(() => {
   font-weight: bold;
 }
 
+.user-info {
+  color: #fff !important;
+  cursor: default;
+}
+
+.user-info:hover {
+  background-color: transparent !important;
+}
+
 .main-content {
   min-height: calc(100vh - 76px);
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .navbar-nav {
+    text-align: center;
+  }
+  
+  .user-info {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 10px;
+    padding-top: 10px;
+  }
 }
 </style>

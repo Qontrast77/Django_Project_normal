@@ -85,30 +85,28 @@ class Match(models.Model):
 def create_user_for_player(sender, instance, created, **kwargs):
     if created and not instance.user:
         # Формируем username из имени и никнейма
-        username_base = f"{instance.name}_{instance.nickname}".replace(' ', '_').lower()
+        username = f"{instance.name}_{instance.nickname}".replace(' ', '_')
         
-        # Проверяем, существует ли пользователь с таким username
-        username = username_base
-        counter = 1
-        while User.objects.filter(username=username).exists():
-            username = f"{username_base}_{counter}"
-            counter += 1
+        # Пароль = имя игрока
+        password = instance.name
         
         try:
-            # Создаем email на основе username
-            email = f"{username}@example.com"
-            
-            # Создаем пользователя без пароля
+            # Создаем пользователя с паролем = имя игрока
             user = User.objects.create_user(
                 username=username,
-                email=email,
-                password=None,  # Пароль не устанавливаем
+                email=f"{username}@example.com",
+                password=password,  # Пароль = имя игрока
                 first_name=instance.name
             )
             
-            # Связываем игрока с созданным пользователем
+            # Сохраняем связь
             instance.user = user
             instance.save()
+            
+            print(f"Создан пользователь для игрока {instance.name}:")
+            print(f"Username: {username}")
+            print(f"Password: {password}")
+            print(f"Email: {username}@example.com")
             
         except Exception as e:
             print(f"Ошибка при создании пользователя для игрока: {e}")
@@ -118,29 +116,23 @@ def create_user_for_player(sender, instance, created, **kwargs):
 def update_user_for_player(sender, instance, created, **kwargs):
     if not created and instance.user:
         try:
-            user = instance.user
+            # Обновляем данные пользователя
+            instance.user.first_name = instance.name
             
-            # Обновляем имя пользователя
-            user.first_name = instance.name
+            # Обновляем username
+            new_username = f"{instance.name}_{instance.nickname}".replace(' ', '_')
             
-            # Обновляем username на основе имени и никнейма
-            new_username_base = f"{instance.name}_{instance.nickname}".replace(' ', '_').lower()
+            if instance.user.username != new_username:
+                instance.user.username = new_username
             
-            if user.username != new_username_base:
-                # Проверяем, не занят ли новый username
-                if not User.objects.filter(username=new_username_base).exclude(id=user.id).exists():
-                    user.username = new_username_base
-                else:
-                    # Если занят, добавляем цифру
-                    counter = 1
-                    while User.objects.filter(username=f"{new_username_base}_{counter}").exclude(id=user.id).exists():
-                        counter += 1
-                    user.username = f"{new_username_base}_{counter}"
+            # Обновляем пароль на имя игрока
+            instance.user.set_password(instance.name)
             
-            # Обновляем email
-            user.email = f"{user.username}@example.com"
+            instance.user.email = f"{new_username}@example.com"
+            instance.user.save()
             
-            user.save()
+            print(f"Обновлен пользователь для игрока {instance.name}:")
+            print(f"New password: {instance.name}")
             
         except Exception as e:
             print(f"Ошибка при обновлении пользователя для игрока: {e}")
@@ -151,5 +143,6 @@ def delete_user_for_player(sender, instance, **kwargs):
     try:
         if instance.user:
             instance.user.delete()
+            print(f"Пользователь {instance.user.username} удален")
     except Exception as e:
         print(f"Ошибка при удалении пользователя для игрока: {e}")

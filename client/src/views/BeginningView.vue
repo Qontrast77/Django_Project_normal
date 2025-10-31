@@ -1,6 +1,22 @@
 <script setup>
 import axios from 'axios';
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
+import {useUserStore} from '@/stores/user_store';
+import {storeToRefs} from "pinia";
+
+const userStore = useUserStore()
+
+const username = ref();
+const password = ref();
+const {
+    userInfo,
+} = storeToRefs(userStore)
+async function onFormSend() {
+    userStore.login(username.value, password.value)
+}
+async function handleLogout() {
+    await userStore.logout();
+}
 
 // Реактивные данные
 const teams = ref([]);
@@ -16,6 +32,31 @@ const loadTime = ref(0);
 const showImageModal = ref(false);
 const currentImageUrl = ref('');
 const currentPlayerName = ref('');
+
+// Вычисляемое свойство для фильтрации матчей
+const filteredMatches = computed(() => {
+  if (!userInfo.value || !userInfo.value.is_authenticated) {
+    return matches.value;
+  }
+  
+  // Если пользователь администратор - показываем все матчи
+  if (userInfo.value.is_staff) {
+    return matches.value;
+  }
+  
+  // Если пользователь игрок - фильтруем матчи по его команде
+  const playerTeamId = userInfo.value.team_id;
+  if (!playerTeamId) {
+    return []; // Если у игрока нет команды, не показываем матчи
+  }
+  
+  return matches.value.filter(match => {
+    const team1Id = typeof match.team1 === 'object' ? match.team1.id : match.team1;
+    const team2Id = typeof match.team2 === 'object' ? match.team2.id : match.team2;
+    
+    return team1Id === playerTeamId || team2Id === playerTeamId;
+  });
+});
 
 // Оптимизированная загрузка данных
 async function loadAllData() {
@@ -200,6 +241,22 @@ onMounted(() => {
     <div class="header">
       <h1>🏆 Киберспортивная Турнирная Система</h1>
       <p>Управление турнирами, командами и матчами</p>
+      
+      <!-- Информация о пользователе -->
+      <div v-if="userInfo && userInfo.is_authenticated" class="user-info-badge">
+        <template v-if="userInfo.is_staff">
+          <i class="bi bi-shield-check me-1"></i>
+          Вы вошли как <strong>Администратор</strong>
+        </template>
+        <template v-else>
+          <i class="bi bi-person-circle me-1"></i>
+          Привет, <strong>{{ userInfo.player_nickname || userInfo.username }}</strong>
+          <span v-if="userInfo.team_name" class="team-info">
+            • Команда: <strong>{{ userInfo.team_name }}</strong>
+          </span>
+        </template>
+      </div>
+      
       <div v-if="!isLoading && !error" class="load-info">
         Данные загружены за {{ loadTime }}мс
       </div>
@@ -248,8 +305,10 @@ onMounted(() => {
           </div>
           <div class="stat-card">
             <div class="stat-icon">⚔️</div>
-            <div class="stat-number">{{ matches.length }}</div>
-            <div class="stat-label">Матчей</div>
+            <div class="stat-number">{{ filteredMatches.length }}</div>
+            <div class="stat-label">
+              {{ userInfo && userInfo.is_authenticated && !userInfo.is_staff ? 'Мои матчи' : 'Матчей' }}
+            </div>
           </div>
           <div class="stat-card">
             <div class="stat-icon">🏷️</div>
@@ -429,14 +488,16 @@ onMounted(() => {
       <!-- Матчи -->
       <div class="section">
         <div class="section-header">
-          <h2>⚡ Последние Матчи</h2>
+          <h2>
+            ⚡ {{ userInfo && userInfo.is_authenticated && !userInfo.is_staff ? 'Мои матчи' : 'Последние Матчи' }}
+          </h2>
           <router-link to="/matches" class="view-all-btn">
             Все матчи →
           </router-link>
         </div>
         
-        <div v-if="matches.length > 0" class="matches-grid">
-          <div v-for="match in matches.slice(0, 6)" :key="match.id" class="match-card">
+        <div v-if="filteredMatches.length > 0" class="matches-grid">
+          <div v-for="match in filteredMatches.slice(0, 6)" :key="match.id" class="match-card">
             <div class="match-teams">
               <div class="team" :class="{ winner: isTeamWinner(match, match.team1) }">
                 <div class="team-name">{{ getTeamName(match.team1) }}</div>
@@ -463,8 +524,15 @@ onMounted(() => {
         </div>
         <div v-else class="empty-state">
           <div class="empty-icon">⚽</div>
-          <h3>Матчей пока нет</h3>
-          <p>Добавьте матчи через админку для отображения результатов</p>
+          <h3>
+            {{ userInfo && userInfo.is_authenticated && !userInfo.is_staff ? 'У вас пока нет матчей' : 'Матчей пока нет' }}
+          </h3>
+          <p>
+            {{ userInfo && userInfo.is_authenticated && !userInfo.is_staff 
+              ? 'Ваша команда еще не участвовала в матчах' 
+              : 'Добавьте матчи через админку для отображения результатов' 
+            }}
+          </p>
         </div>
       </div>
 
@@ -527,7 +595,32 @@ onMounted(() => {
       </div>
     </div>
   </div>
+
+  <!-- Модальное окно авторизации -->
+  <div v-if="userInfo && !userInfo.is_authenticated" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Пожалуйста, авторизуйтесь как администратор или игрок</h5>
+        </div>
+        <div class="modal-body text-center">
+          <div v-if="userInfo && !userInfo.is_authenticated" class="container">
+            <form
+                @submit.stop.prevent="onFormSend"
+                style="display: flex; gap: 8px; align-items: center; justify-content: center; padding: 8px; width: 100%">
+
+                <input v-model="username" type="text" placeholder="username" required class="input-group-text" style="flex: auto;">
+                <input v-model="password" type="password" placeholder="password" required class="input-group-text"  style="flex: auto;">
+
+                <button type="submit" class="btn btn-primary">Отправить</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
+
 
 <style scoped>
 .dashboard {

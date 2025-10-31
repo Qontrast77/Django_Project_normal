@@ -1,0 +1,1 @@
+set PATH=C:\Users\stud\node-v22.21.0-win-x64\node-v22.21.0-win-x64;%PATH%

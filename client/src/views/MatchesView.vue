@@ -1,7 +1,12 @@
 <script setup>
 import axios from 'axios';
 import Cookies from 'js-cookie';
-import { onBeforeMount, ref } from 'vue';
+import { onBeforeMount, ref, computed } from 'vue';
+import { useUserStore } from '@/stores/user_store';
+import { storeToRefs } from "pinia";
+
+const userStore = useUserStore();
+const { userInfo } = storeToRefs(userStore);
 
 const matches = ref([]);
 const tournaments = ref([]);
@@ -216,10 +221,15 @@ function getWinnerClass(match, teamId) {
     const compareId = typeof teamId === 'object' ? teamId.id : teamId;
     return winnerId === compareId ? 'winner-team' : '';
 }
+
+// Проверка прав доступа
+const canEditMatches = computed(() => {
+  return userInfo.value && userInfo.value.is_authenticated && userInfo.value.is_staff;
+});
 </script>
 
 <template>
-  <div class="container-fluid">
+  <div class="container-fluid pt-5">
     <!-- Состояния загрузки и ошибок -->
     <div v-if="isLoading" class="text-center py-4">
       <div class="spinner-border text-primary" role="status">
@@ -233,8 +243,8 @@ function getWinnerClass(match, teamId) {
       <button type="button" class="btn-close" @click="error = null"></button>
     </div>
 
-    <!-- Форма добавления матча -->
-    <div class="card mb-4">
+    <!-- Форма добавления матча (только для админов) -->
+    <div v-if="canEditMatches" class="card mb-4">
       <div class="card-header bg-primary text-white">
         <h3 class="mb-0">Добавить матч</h3>
       </div>
@@ -328,14 +338,16 @@ function getWinnerClass(match, teamId) {
     <!-- Список матчей -->
     <div class="card">
       <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-        <h3 class="mb-0">Список матчей</h3>
+        <h3 class="mb-0">
+          {{ userInfo && userInfo.is_authenticated && !userInfo.is_staff ? 'Мои матчи' : 'Список матчей' }}
+        </h3>
         <span class="badge bg-primary">{{ matches.length }} матчей</span>
       </div>
       <div class="card-body">
         <div v-if="matches.length === 0" class="text-center text-muted py-5">
           <i class="bi bi-emoji-frown display-1 d-block mb-3"></i>
           <h5>Матчей пока нет</h5>
-          <p class="mb-0">Добавьте первый матч используя форму выше</p>
+          <p class="mb-0">{{ userInfo && userInfo.is_authenticated && !userInfo.is_staff ? 'Ваша команда еще не участвовала в матчах' : 'Добавьте первый матч используя форму выше' }}</p>
         </div>
         
         <div v-else class="row g-4">
@@ -405,7 +417,8 @@ function getWinnerClass(match, teamId) {
                 </div>
               </div>
               
-              <div class="card-footer bg-transparent">
+              <!-- Кнопки действий (только для админов) -->
+              <div v-if="canEditMatches" class="card-footer bg-transparent">
                 <div class="d-flex gap-2 justify-content-end">
                   <button 
                     class="btn btn-outline-danger btn-sm" 
@@ -435,8 +448,8 @@ function getWinnerClass(match, teamId) {
     </div>
   </div>
 
-  <!-- Модальное окно редактирования -->
-  <div class="modal fade" id="editMatchModal" tabindex="-1">
+  <!-- Модальное окно редактирования (только для админов) -->
+  <div v-if="canEditMatches" class="modal fade" id="editMatchModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">

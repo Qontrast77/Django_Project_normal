@@ -1,7 +1,12 @@
 <script setup>
 import axios from 'axios';
 import Cookies from 'js-cookie';
-import { onBeforeMount, ref } from 'vue';
+import { onBeforeMount, ref, computed } from 'vue';
+import { useUserStore } from '@/stores/user_store';
+import { storeToRefs } from "pinia";
+
+const userStore = useUserStore();
+const { userInfo } = storeToRefs(userStore);
 
 const tournaments = ref([]);
 const categories = ref([]);
@@ -217,10 +222,15 @@ function getTournamentDuration(startDate, endDate) {
     return 0;
   }
 }
+
+// Проверка прав доступа
+const canEditTournaments = computed(() => {
+  return userInfo.value && userInfo.value.is_authenticated && userInfo.value.is_staff;
+});
 </script>
 
 <template>
-  <div class="container-fluid">
+  <div class="container-fluid pt-5">
     <!-- Состояния загрузки и ошибок -->
     <div v-if="isLoading" class="text-center py-4">
       <div class="spinner-border text-primary" role="status">
@@ -234,8 +244,8 @@ function getTournamentDuration(startDate, endDate) {
       <button type="button" class="btn-close" @click="error = null"></button>
     </div>
 
-    <!-- Форма добавления турнира -->
-    <div class="card mb-4">
+    <!-- Форма добавления турнира (только для админов) -->
+    <div v-if="canEditTournaments" class="card mb-4">
       <div class="card-header bg-primary text-white">
         <h3 class="mb-0">Добавить турнир</h3>
       </div>
@@ -354,7 +364,8 @@ function getTournamentDuration(startDate, endDate) {
                 </div>
               </div>
               
-              <div class="card-footer bg-transparent">
+              <!-- Кнопки действий (только для админов) -->
+              <div v-if="canEditTournaments" class="card-footer bg-transparent">
                 <div class="d-flex gap-2 justify-content-end">
                   <button 
                     class="btn btn-outline-danger btn-sm" 
@@ -384,8 +395,8 @@ function getTournamentDuration(startDate, endDate) {
     </div>
   </div>
 
-  <!-- Модальное окно редактирования -->
-  <div class="modal fade" id="editTournamentModal" tabindex="-1">
+  <!-- Модальное окно редактирования (только для админов) -->
+  <div v-if="canEditTournaments" class="modal fade" id="editTournamentModal" tabindex="-1">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">

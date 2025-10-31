@@ -1,7 +1,12 @@
 <script setup>
 import axios from 'axios';
 import Cookies from 'js-cookie';
-import { onBeforeMount, ref } from 'vue';
+import { onBeforeMount, ref, computed } from 'vue';
+import { useUserStore } from '@/stores/user_store';
+import { storeToRefs } from "pinia";
+
+const userStore = useUserStore();
+const { userInfo } = storeToRefs(userStore);
 
 const teams = ref([]);
 const isLoading = ref(false);
@@ -141,10 +146,15 @@ function handleImageError(event) {
   event.target.style.display = 'none';
   event.target.onerror = null; // Убираем обработчик чтобы избежать цикла
 }
+
+// Проверка прав доступа
+const canEditTeams = computed(() => {
+  return userInfo.value && userInfo.value.is_authenticated && userInfo.value.is_staff;
+});
 </script>
 
-<template>
-  <div class="container-fluid">
+<template >
+  <div class="container-fluid pt-5">
     <!-- Состояния загрузки и ошибок -->
     <div v-if="isLoading" class="text-center py-4">
       <div class="spinner-border text-primary" role="status">
@@ -158,8 +168,8 @@ function handleImageError(event) {
       <button type="button" class="btn-close" @click="error = null"></button>
     </div>
 
-    <!-- Форма добавления команды -->
-    <div class="card mb-4">
+    <!-- Форма добавления команды (только для админов) -->
+    <div v-if="canEditTeams" class="card mb-4">
       <div class="card-header bg-primary text-white">
         <h3 class="mb-0">Добавить команду</h3>
       </div>
@@ -256,8 +266,8 @@ function handleImageError(event) {
                 </p>
               </div>
               
-              <!-- Кнопки действий -->
-              <div class="card-footer bg-transparent">
+              <!-- Кнопки действий (только для админов) -->
+              <div v-if="canEditTeams" class="card-footer bg-transparent">
                 <div class="d-flex gap-2 justify-content-center">
                   <button 
                     class="btn btn-outline-danger btn-sm" 
@@ -287,8 +297,8 @@ function handleImageError(event) {
     </div>
   </div>
 
-  <!-- Модальное окно редактирования -->
-  <div class="modal fade" id="editTeamModal" tabindex="-1">
+  <!-- Модальное окно редактирования (только для админов) -->
+  <div v-if="canEditTeams" class="modal fade" id="editTeamModal" tabindex="-1">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">

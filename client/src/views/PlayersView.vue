@@ -1,7 +1,12 @@
 <script setup>
 import axios from 'axios';
 import Cookies from 'js-cookie';
-import { onBeforeMount, ref } from 'vue';
+import { onBeforeMount, ref, computed } from 'vue';
+import { useUserStore } from '@/stores/user_store';
+import { storeToRefs } from "pinia";
+
+const userStore = useUserStore();
+const { userInfo } = storeToRefs(userStore);
 
 const players = ref([]);
 const teams = ref([]);
@@ -205,10 +210,15 @@ function getTeamName(teamId) {
   const team = teams.value.find(t => t.id === teamId);
   return team ? team.name : 'Команда не найдена';
 }
+
+// Проверка прав доступа
+const canEditPlayers = computed(() => {
+  return userInfo.value && userInfo.value.is_authenticated && userInfo.value.is_staff;
+});
 </script>
 
 <template>
-  <div class="container-fluid">
+  <div class="container-fluid pt-5">
     <!-- Состояния загрузки и ошибок -->
     <div v-if="isLoading" class="text-center py-4">
       <div class="spinner-border text-primary" role="status">
@@ -222,8 +232,8 @@ function getTeamName(teamId) {
       <button type="button" class="btn-close" @click="error = null"></button>
     </div>
 
-    <!-- Форма добавления игрока -->
-    <div class="card mb-4">
+    <!-- Форма добавления игрока (только для админов) -->
+    <div v-if="canEditPlayers" class="card mb-4">
       <div class="card-header bg-primary text-white">
         <h3 class="mb-0">Добавить игрока</h3>
       </div>
@@ -346,8 +356,8 @@ function getTeamName(teamId) {
                 </p>
               </div>
               
-              <!-- Кнопки действий -->
-              <div class="card-footer bg-transparent">
+              <!-- Кнопки действий (только для админов) -->
+              <div v-if="canEditPlayers" class="card-footer bg-transparent">
                 <div class="d-flex gap-2 justify-content-center">
                   <button 
                     class="btn btn-outline-danger btn-sm" 
@@ -377,8 +387,8 @@ function getTeamName(teamId) {
     </div>
   </div>
 
-  <!-- Модальное окно редактирования -->
-  <div class="modal fade" id="editPlayerModal" tabindex="-1">
+  <!-- Модальное окно редактирования (только для админов) -->
+  <div v-if="canEditPlayers" class="modal fade" id="editPlayerModal" tabindex="-1">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">

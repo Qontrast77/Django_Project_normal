@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from tournaments import views
 from rest_framework.routers import DefaultRouter
-from tournaments.api import TeamsViewSet, PlayersViewSet, TournamentsViewSet, MatchesViewSet, TournamentCategoriesViewSet
+from tournaments.api import TeamsViewSet, PlayersViewSet, TournamentsViewSet, MatchesViewSet, TournamentCategoriesViewSet, UserViewSet
 from django.conf.urls.static import static
 from django.conf import settings
 
@@ -12,6 +12,7 @@ router.register("players", PlayersViewSet, basename="players")
 router.register("tournament-categories", TournamentCategoriesViewSet, basename="tournament-categories")
 router.register("tournaments", TournamentsViewSet, basename="tournaments")
 router.register("matches", MatchesViewSet, basename="matches")
+router.register("user", UserViewSet, basename="user")
 
 urlpatterns = [
     path('', views.ShowTournamentsView.as_view()),
