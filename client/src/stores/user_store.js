@@ -11,7 +11,9 @@ export const useUserStore = defineStore("userStore", () => {
         try {
             let r = await axios.get("/api/user/info/")
             userInfo.value = r.data;
+            console.log("User info loaded:", userInfo.value); // Добавлено для отладки
         } catch (error) {
+            console.error("Error loading user info:", error);
             userInfo.value = {
                 is_authenticated: false
             };
@@ -19,11 +21,27 @@ export const useUserStore = defineStore("userStore", () => {
     }
 
     async function login(username, password) {
-        let r = await axios.post("/api/user/login/", {
-            username: username,
-            password: password,
-        })
-        await checkLogin();
+        try {
+            let r = await axios.post("/api/user/login/", {
+                username: username,
+                password: password,
+            })
+            
+            if (r.data.success) {
+                // Обновляем userInfo данными с сервера
+                if (r.data.user_info) {
+                    userInfo.value = r.data.user_info;
+                } else {
+                    await checkLogin();
+                }
+                return { success: true };
+            } else {
+                return { success: false, error: r.data.error };
+            }
+        } catch (error) {
+            console.error("Login error:", error);
+            return { success: false, error: "Ошибка соединения" };
+        }
     }
 
     async function logout() {
@@ -35,7 +53,6 @@ export const useUserStore = defineStore("userStore", () => {
             userInfo.value = {
                 is_authenticated: false,
                 username: "",
-                password: "",
                 is_staff: false
             };
         }

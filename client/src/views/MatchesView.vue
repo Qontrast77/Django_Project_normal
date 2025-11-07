@@ -11,8 +11,10 @@ const { userInfo } = storeToRefs(userStore);
 const matches = ref([]);
 const tournaments = ref([]);
 const teams = ref([]);
+const players = ref([]);
 const isLoading = ref(false);
 const error = ref(null);
+const selectedPlayerFilter = ref('all');
 
 onBeforeMount(() => {
   axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
@@ -52,10 +54,21 @@ async function fetchTeams() {
     }
 }
 
+async function fetchPlayers() {
+    try {
+        const response = await axios.get("/api/players/");
+        players.value = response.data;
+    } catch (error) {
+        console.error('Ошибка при загрузке игроков:', error);
+        players.value = [];
+    }
+}
+
 onBeforeMount(async () => {
     await fetchMatches();
     await fetchTournaments();
     await fetchTeams();
+    await fetchPlayers();
 })
 
 const matchToAdd = ref({
@@ -222,6 +235,34 @@ function getWinnerClass(match, teamId) {
     return winnerId === compareId ? 'winner-team' : '';
 }
 
+// Функция сброса фильтра
+function resetFilter() {
+    selectedPlayerFilter.value = 'all';
+}
+
+// Вычисляемое свойство для отфильтрованных матчей
+const filteredMatches = computed(() => {
+    if (selectedPlayerFilter.value === 'all') {
+        return matches.value;
+    }
+    
+    const playerId = parseInt(selectedPlayerFilter.value);
+    const player = players.value.find(p => p.id === playerId);
+    
+    if (!player || !player.team) {
+        return matches.value;
+    }
+    
+    const playerTeamId = typeof player.team === 'object' ? player.team.id : player.team;
+    
+    return matches.value.filter(match => {
+        const team1Id = typeof match.team1 === 'object' ? match.team1.id : match.team1;
+        const team2Id = typeof match.team2 === 'object' ? match.team2.id : match.team2;
+        
+        return team1Id === playerTeamId || team2Id === playerTeamId;
+    });
+});
+
 // Проверка прав доступа
 const canEditMatches = computed(() => {
   return userInfo.value && userInfo.value.is_authenticated && userInfo.value.is_staff;
@@ -335,23 +376,69 @@ const canEditMatches = computed(() => {
       </div>
     </div>
 
+    <!-- БЛОК ФИЛЬТРА ПО ИГРОКАМ (ТОЛЬКО ДЛЯ АДМИНОВ) -->
+    <div v-if="canEditMatches" class="card mb-4">
+      <div class="card-header bg-info text-white">
+        <h3 class="mb-0">
+          <i class="bi bi-funnel me-2"></i>Фильтр по игрокам
+        </h3>
+      </div>
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col-md-6">
+            <label class="form-label fw-bold">Выберите игрока для фильтрации матчей:</label>
+            <select class="form-select" v-model="selectedPlayerFilter">
+              <option value="all">👁️ Все матчи</option>
+              <option 
+                v-for="player in players" 
+                :key="player.id" 
+                :value="player.id"
+              >
+                🎮 {{ player.nickname || player.name }} 
+                <template v-if="player.team">
+                  ({{ getTeamName(player.team) }})
+                </template>
+              </option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <div v-if="selectedPlayerFilter !== 'all'" class="alert alert-info mt-3">
+              <i class="bi bi-info-circle me-2"></i>
+              <strong>Фильтр активен:</strong> 
+              Показываются матчи игрока 
+              <strong class="text-primary">
+                {{ players.find(p => p.id === parseInt(selectedPlayerFilter))?.nickname || players.find(p => p.id === parseInt(selectedPlayerFilter))?.name }}
+              </strong>
+              <button class="btn btn-sm btn-outline-info ms-2" @click="resetFilter">
+                <i class="bi bi-x me-1"></i>Сбросить
+              </button>
+            </div>
+            <div v-else class="text-muted mt-3">
+              <i class="bi bi-info-circle me-2"></i>
+              Выберите игрока для просмотра его матчей
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Список матчей -->
     <div class="card">
       <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
         <h3 class="mb-0">
           {{ userInfo && userInfo.is_authenticated && !userInfo.is_staff ? 'Мои матчи' : 'Список матчей' }}
         </h3>
-        <span class="badge bg-primary">{{ matches.length }} матчей</span>
+        <span class="badge bg-primary">{{ filteredMatches.length }} матчей</span>
       </div>
       <div class="card-body">
-        <div v-if="matches.length === 0" class="text-center text-muted py-5">
+        <div v-if="filteredMatches.length === 0" class="text-center text-muted py-5">
           <i class="bi bi-emoji-frown display-1 d-block mb-3"></i>
           <h5>Матчей пока нет</h5>
           <p class="mb-0">{{ userInfo && userInfo.is_authenticated && !userInfo.is_staff ? 'Ваша команда еще не участвовала в матчах' : 'Добавьте первый матч используя форму выше' }}</p>
         </div>
         
         <div v-else class="row g-4">
-          <div v-for="match in matches" :key="match.id" class="col-12 col-md-6 col-lg-4">
+          <div v-for="match in filteredMatches" :key="match.id" class="col-12 col-md-6 col-lg-4">
             <div class="match-card card h-100">
               <div class="card-header bg-light">
                 <div class="d-flex justify-content-between align-items-center">
