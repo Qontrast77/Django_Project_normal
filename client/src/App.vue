@@ -13,6 +13,8 @@ const showCategoriesTab = computed(() => {
   return userInfo.value && userInfo.value.is_authenticated && userInfo.value.is_staff;
 });
 
+
+
 // Получаем никнейм игрока для отображения
 const playerNickname = computed(() => {
   if (userInfo.value && userInfo.value.is_authenticated && !userInfo.value.is_staff) {
@@ -78,6 +80,11 @@ onBeforeMount(() => {
             <li class="nav-item">
               <router-link class="nav-link" to="/matches">
                 <i class="bi bi-controller me-1"></i>Матчи
+              </router-link>
+            </li>
+            <li v-if="userInfo && userInfo.is_authenticated && userInfo.is_staff" class="nav-item">
+              <router-link class="nav-link" to="/statistic">
+                <i class="bi bi-controller me-1"></i>Статистика
               </router-link>
             </li>
           </ul>
@@ -146,7 +153,7 @@ onBeforeMount(() => {
 
 .main-content {
   min-height: calc(100vh - 76px);
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #000000;
 }
 
 /* Адаптивность */

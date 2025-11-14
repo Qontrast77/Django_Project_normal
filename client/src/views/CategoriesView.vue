@@ -124,7 +124,7 @@ function truncateDescription(description, maxLength = 50) {
 </script>
 
 <template>
-  <div class="container-fluid">
+  <div class="container-fluid pt-5">
     <!-- Состояния загрузки и ошибок -->
     <div v-if="isLoading" class="text-center py-4">
       <div class="spinner-border text-primary" role="status">

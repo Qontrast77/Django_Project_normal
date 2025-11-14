@@ -12,6 +12,7 @@ const tournaments = ref([]);
 const categories = ref([]);
 const isLoading = ref(false);
 const error = ref(null);
+const selectedCategoryFilter = ref('all'); // Фильтр по категории
 
 onBeforeMount(() => {
   axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
@@ -46,6 +47,24 @@ onBeforeMount(async () => {
     await fetchTournaments();
     await fetchCategories();
 })
+
+// Вычисляемое свойство для отфильтрованных турниров
+const filteredTournaments = computed(() => {
+    if (selectedCategoryFilter.value === 'all') {
+        return tournaments.value;
+    }
+    
+    const categoryId = parseInt(selectedCategoryFilter.value);
+    return tournaments.value.filter(tournament => {
+        const tournamentCategoryId = tournament.category?.id || tournament.category;
+        return tournamentCategoryId === categoryId;
+    });
+});
+
+// Функция сброса фильтра
+function resetFilter() {
+    selectedCategoryFilter.value = 'all';
+}
 
 const tournamentToAdd = ref({
     name: '',
@@ -167,9 +186,6 @@ async function onUpdateTournament() {
     console.log('Ответ сервера:', response.data);
     
     await fetchTournaments();
-    
-    // Просто закрываем модальное окно через data-bs-dismiss
-    // Кнопка "Сохранить" уже имеет data-bs-dismiss="modal"
     
   } catch (err) {
     console.error('Ошибка обновления турнира:', err);
@@ -318,21 +334,69 @@ const canEditTournaments = computed(() => {
       </div>
     </div>
 
+    <!-- Блок фильтра по категориям -->
+    <div class="card mb-4">
+      <div class="card-header bg-info text-white">
+        <h3 class="mb-0">
+          <i class="bi bi-funnel me-2"></i>Фильтр по категориям
+        </h3>
+      </div>
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col-md-6">
+            <label class="form-label fw-bold">Выберите категорию для фильтрации турниров:</label>
+            <select class="form-select" v-model="selectedCategoryFilter">
+              <option value="all">🏷️ Все категории</option>
+              <option 
+                v-for="category in categories" 
+                :key="category.id" 
+                :value="category.id"
+              >
+                {{ category.name }}
+              </option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <div v-if="selectedCategoryFilter !== 'all'" class="alert alert-info mt-3">
+              <i class="bi bi-info-circle me-2"></i>
+              <strong>Фильтр активен:</strong> 
+              Показываются турниры категории 
+              <strong class="text-primary">
+                {{ categories.find(c => c.id === parseInt(selectedCategoryFilter))?.name }}
+              </strong>
+              <button class="btn btn-sm btn-outline-info ms-2" @click="resetFilter">
+                <i class="bi bi-x me-1"></i>Сбросить
+              </button>
+            </div>
+            <div v-else class="text-muted mt-3">
+              <i class="bi bi-info-circle me-2"></i>
+              Выберите категорию для фильтрации турниров
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Список турниров -->
     <div class="card">
       <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
         <h3 class="mb-0">Список турниров</h3>
-        <span class="badge bg-primary">{{ tournaments.length }} турниров</span>
+        <span class="badge bg-primary">{{ filteredTournaments.length }} турниров</span>
       </div>
       <div class="card-body">
-        <div v-if="tournaments.length === 0" class="text-center text-muted py-5">
+        <div v-if="filteredTournaments.length === 0" class="text-center text-muted py-5">
           <i class="bi bi-trophy display-1 d-block mb-3"></i>
           <h5>Турниров пока нет</h5>
-          <p class="mb-0">Добавьте первый турнир используя форму выше</p>
+          <p class="mb-0" v-if="selectedCategoryFilter !== 'all'">
+            В выбранной категории пока нет турниров
+          </p>
+          <p class="mb-0" v-else>
+            Добавьте первый турнир используя форму выше
+          </p>
         </div>
         
         <div v-else class="row g-4">
-          <div v-for="tournament in tournaments" :key="tournament.id" class="col-12 col-md-6 col-lg-4 col-xl-3">
+          <div v-for="tournament in filteredTournaments" :key="tournament.id" class="col-12 col-md-6 col-lg-4 col-xl-3">
             <div class="tournament-card card h-100">
               <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-3">

@@ -5,6 +5,7 @@ import PlayersView from '../views/PlayersView.vue'
 import CategoriesView from '../views/CategoriesView.vue'
 import TournamentsView from '../views/TournamentsView.vue'
 import MatchesView from '../views/MatchesView.vue'
+import StatisticView from '@/views/StatisticView.vue'
 
 const routes = [
   {
@@ -36,6 +37,10 @@ const routes = [
     path: '/matches',
     name: 'matches',
     component: MatchesView
+  },
+  {
+      path: '/statistic',
+      component: StatisticView
   }
 ]
 
