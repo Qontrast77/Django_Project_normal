@@ -233,6 +233,30 @@ onMounted(() => {
   // Добавляем обработчик клавиши ESC
   document.addEventListener('keydown', onKeydown);
 });
+
+// Функция экспорта матчей в Excel
+async function exportMatchesToExcel() {
+    try {
+        const response = await axios.get('/api/matches/export-excel/', {
+            responseType: 'blob' 
+        });
+        
+        // Создаем ссылку для скачивания
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'tournament_matches.xlsx');
+        document.body.appendChild(link);
+        link.click();
+        
+        link.remove();
+        window.URL.revokeObjectURL(url);
+        
+    } catch (error) {
+        console.error('Ошибка при экспорте в Excel:', error);
+        alert('Не удалось экспортировать данные в Excel');
+    }
+}
 </script>
 
 <template>
@@ -491,9 +515,12 @@ onMounted(() => {
           <h2>
             ⚡ {{ userInfo && userInfo.is_authenticated && !userInfo.is_staff ? 'Мои матчи' : 'Последние Матчи' }}
           </h2>
+        <div><button style="margin-right: 15px;" v-if="userInfo && userInfo.is_staff" @click="exportMatchesToExcel" class="btn btn-success btn-sm">
+            <i class="bi bi-file-earmark-excel me-1"></i> Экспорт матчей
+          </button>
           <router-link to="/matches" class="view-all-btn">
             Все матчи →
-          </router-link>
+          </router-link></div>
         </div>
         
         <div v-if="filteredMatches.length > 0" class="matches-grid">

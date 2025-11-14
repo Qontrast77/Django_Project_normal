@@ -5,6 +5,10 @@ from rest_framework.response import Response
 from django.contrib.auth import authenticate, login, logout
 from django.db.models import Q, Count, Avg, Max, Min
 from rest_framework import serializers
+from django.http import HttpResponse
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment
+import io
 
 from .models import Team, Player, Tournament, Match, TournamentCategory
 from .serializers import (
@@ -356,3 +360,79 @@ class MatchesViewSet(
         
         serializer = self.MatchStatsSerializer(instance=stats)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['GET'], url_path='export-excel')
+    def export_matches_to_excel(self, request, *args, **kwargs):
+        # Получаем матчи с предварительной загрузкой связанных данных
+        matches = Match.objects.select_related(
+            'tournament', 'team1', 'team2', 'winner'
+        ).all()
+       
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Матчи турнирной системы"
+        
+        # Заголовки таблицы
+        headers = [
+            'ID матча',
+            'Турнир', 
+            'Команда 1', 
+            'Счёт команды 1', 
+            'Команда 2', 
+            'Счёт команды 2',
+            'Победитель',
+            'Дата матча',
+            'Статус'
+        ]
+        
+        # Форматирование заголовков
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.font = Font(bold=True)
+            cell.alignment = Alignment(horizontal='center')
+        
+        # Заполнение данных
+        for row, match in enumerate(matches, 2):
+            # Определяем победителя
+            winner_name = "Ничья"
+            if match.winner:
+                winner_name = match.winner.name
+            
+            # Определяем статус матча
+            status = "Завершён" if match.winner else "В процессе"
+            
+            ws.cell(row=row, column=1, value=match.id)
+            ws.cell(row=row, column=2, value=match.tournament.name if match.tournament else "Без турнира")
+            ws.cell(row=row, column=3, value=match.team1.name if match.team1 else "Не указана")
+            ws.cell(row=row, column=4, value=match.team1_score or 0)
+            ws.cell(row=row, column=5, value=match.team2.name if match.team2 else "Не указана")
+            ws.cell(row=row, column=6, value=match.team2_score or 0)
+            ws.cell(row=row, column=7, value=winner_name)
+            ws.cell(row=row, column=8, value=match.match_date.strftime('%d.%m.%Y %H:%M') if match.match_date else "Не указана")
+            ws.cell(row=row, column=9, value=status)
+        
+        # Автоподбор ширины столбцов
+        for column in ws.columns: 
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws.column_dimensions[column_letter].width = adjusted_width
+        
+        # Создание HTTP ответа
+        buffer = io.BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+        
+        response = HttpResponse(
+            buffer.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename="tournament_matches.xlsx"'
+        
+        return response
