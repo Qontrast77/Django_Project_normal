@@ -657,7 +657,7 @@ async function exportMatchesToExcel() {
 
 /* Заголовок */
 .header {
-  background: linear-gradient(135deg, #2c3e50, #34495e);
+  background: #000;
   color: white;
   padding: 40px 30px;
   text-align: center;
