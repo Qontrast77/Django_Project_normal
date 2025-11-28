@@ -4,18 +4,18 @@ import axios from "axios";
 
 export const useUserStore = defineStore("userStore", () => {
     const userInfo = ref({
-        is_authenticated: false
+        is_authenticated: false,
+        is_doublefaq: false
     })
     
     async function checkLogin() {
         try {
             let r = await axios.get("/api/user/info/")
             userInfo.value = r.data;
-            console.log("User info loaded:", userInfo.value); // Добавлено для отладки
         } catch (error) {
-            console.error("Error loading user info:", error);
             userInfo.value = {
-                is_authenticated: false
+                is_authenticated: false,
+                is_doublefaq: false
             };
         }
     }
@@ -26,21 +26,11 @@ export const useUserStore = defineStore("userStore", () => {
                 username: username,
                 password: password,
             })
-            
-            if (r.data.success) {
-                // Обновляем userInfo данными с сервера
-                if (r.data.user_info) {
-                    userInfo.value = r.data.user_info;
-                } else {
-                    await checkLogin();
-                }
-                return { success: true };
-            } else {
-                return { success: false, error: r.data.error };
-            }
+            await checkLogin();
+            return r.data.success;
         } catch (error) {
             console.error("Login error:", error);
-            return { success: false, error: "Ошибка соединения" };
+            return false;
         }
     }
 
@@ -52,9 +42,35 @@ export const useUserStore = defineStore("userStore", () => {
         } finally {
             userInfo.value = {
                 is_authenticated: false,
-                username: "",
-                is_staff: false
+                is_doublefaq: false
             };
+        }
+    }
+
+    // Генерация кода 2FA на сервере
+    async function generate2FACode() {
+        try {
+            let r = await axios.post("/api/user/generate-2fa/")
+            return r.data
+        } catch (error) {
+            return { success: false, message: 'Ошибка при генерации кода' }
+        }
+    }
+
+    // Проверка кода 2FA на сервере
+    async function verify2FACode(inputCode) {
+        try {
+            let r = await axios.post("/api/user/verify-2fa/", {
+                code: inputCode,
+            })
+            
+            if (r.data.success) {
+                await checkLogin(); // Обновляем статус
+            }
+            
+            return r.data
+        } catch (error) {
+            return { success: false, message: 'Ошибка при проверке кода' }
         }
     }
 
@@ -66,6 +82,8 @@ export const useUserStore = defineStore("userStore", () => {
         userInfo,
         checkLogin,
         login,
-        logout
+        logout,
+        generate2FACode,
+        verify2FACode
     }
 })

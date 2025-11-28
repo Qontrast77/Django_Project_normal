@@ -78,8 +78,8 @@ onMounted(() => {
 })
 </script>
 
-<template>
-  <div class="container-fluid pt-5">
+<template class="content">
+  <div class="container pt-5">
     <!-- Показываем контент ТОЛЬКО для администраторов -->
     <div v-if="userInfo && userInfo.is_authenticated && userInfo.is_staff">
       <!-- Заголовок -->

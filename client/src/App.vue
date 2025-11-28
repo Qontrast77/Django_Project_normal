@@ -5,6 +5,7 @@ import { onBeforeMount, computed } from 'vue';
 import { useUserStore } from '@/stores/user_store';
 import { storeToRefs } from "pinia";
 
+
 const userStore = useUserStore();
 const { userInfo } = storeToRefs(userStore);
 
@@ -35,6 +36,7 @@ onBeforeMount(() => {
   axios.defaults.timeout = 10000; // 10 секунд
 })
 </script>
+
 
 <template>
   <div id="app">

@@ -1,21 +1,48 @@
 <script setup>
 import axios from 'axios';
 import { onMounted, ref, computed } from 'vue';
-import {useUserStore} from '@/stores/user_store';
-import {storeToRefs} from "pinia";
+import { useUserStore } from '@/stores/user_store';
+import { storeToRefs } from "pinia";
 
 const userStore = useUserStore()
 
-const username = ref();
-const password = ref();
+const username = ref('');
+const password = ref('');
 const {
     userInfo,
 } = storeToRefs(userStore)
+
 async function onFormSend() {
-    userStore.login(username.value, password.value)
+    await userStore.login(username.value, password.value)
 }
+
 async function handleLogout() {
     await userStore.logout();
+}
+
+// 2FA переменные
+const twoFACode = ref('');
+const show2FAModal = ref(false);
+
+// Функции для 2FA модального окна
+async function open2FAModal() {
+    const result = await userStore.generate2FACode();
+    if (result.success) {
+        twoFACode.value = '';
+        show2FAModal.value = true;
+    } else {
+        alert('Ошибка генерации кода: ' + result.message);
+    }
+}
+
+async function verify2FA() {
+    const result = await userStore.verify2FACode(twoFACode.value);
+    if (result.success) {
+        show2FAModal.value = false;
+        alert('Двухфакторная аутентификация успешно пройдена!');
+    } else {
+        alert('Ошибка: ' + result.message);
+    }
 }
 
 // Реактивные данные
@@ -227,13 +254,6 @@ function handleImageError(event) {
   event.target.onerror = null;
 }
 
-// Загрузка при монтировании
-onMounted(() => {
-  loadAllData();
-  // Добавляем обработчик клавиши ESC
-  document.addEventListener('keydown', onKeydown);
-});
-
 // Функция экспорта матчей в Excel
 async function exportMatchesToExcel() {
     try {
@@ -257,6 +277,13 @@ async function exportMatchesToExcel() {
         alert('Не удалось экспортировать данные в Excel');
     }
 }
+
+// Загрузка при монтировании
+onMounted(() => {
+  loadAllData();
+  // Добавляем обработчик клавиши ESC
+  document.addEventListener('keydown', onKeydown);
+});
 </script>
 
 <template>
@@ -279,7 +306,25 @@ async function exportMatchesToExcel() {
             Твоя команда: <strong>{{ userInfo.team_name }}</strong>
           </span>
         </template>
-      </div>
+        
+        <!-- Статус 2FA -->
+        <div class="content"> 
+        <div v-if="userInfo.is_staff" class="2fa-status mt-2">
+          <div v-if="userInfo.is_doublefaq" class="alert alert-success alert-sm">
+            <i class="bi bi-shield-check"></i> Двухфакторная аутентификация активна
+          </div>
+          <div v-else class="alert alert-primary alert-sm d-flex justify-content-between align-items-center">
+            <span>
+              <i class="bi bi-shield-exclamation"></i> 
+              Для редактирования данных требуется двухфакторная аутентификация
+            </span>
+            <button @click="open2FAModal" class="btn btn-primary btn-sm">
+              Войти по второму фактору
+            </button>
+          </div>
+        </div>
+      </div>  
+        </div>
       
       <div v-if="!isLoading && !error" class="load-info">
         Данные загружены за {{ loadTime }}мс
@@ -515,12 +560,14 @@ async function exportMatchesToExcel() {
           <h2>
             ⚡ {{ userInfo && userInfo.is_authenticated && !userInfo.is_staff ? 'Мои матчи' : 'Последние Матчи' }}
           </h2>
-        <div><button style="margin-right: 15px;" v-if="userInfo && userInfo.is_staff" @click="exportMatchesToExcel" class="btn btn-success btn-sm">
-            <i class="bi bi-file-earmark-excel me-1"></i> Экспорт матчей
-          </button>
-          <router-link to="/matches" class="view-all-btn">
-            Все матчи →
-          </router-link></div>
+          <div>
+            <button style="margin-right: 15px;" v-if="userInfo && userInfo.is_staff && userInfo.is_doublefaq" @click="exportMatchesToExcel" class="btn btn-success btn-sm">
+              <i class="bi bi-file-earmark-excel me-1"></i> Экспорт матчей
+            </button>
+            <router-link to="/matches" class="view-all-btn">
+              Все матчи →
+            </router-link>
+          </div>
         </div>
         
         <div v-if="filteredMatches.length > 0" class="matches-grid">
@@ -621,6 +668,56 @@ async function exportMatchesToExcel() {
         </div>
       </div>
     </div>
+
+    <!-- Модальное окно 2FA -->
+    <div v-if="show2FAModal" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Двухфакторная аутентификация</h5>
+            <button
+              type="button"
+              class="btn-close"
+              @click="show2FAModal = false"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <p>Введите 6-значный код, отправленный вам</p>
+            <div class="form-floating mb-3">
+              <input
+                v-model="twoFACode"
+                type="text"
+                class="form-control"
+                placeholder="000000"
+                maxlength="6"
+              >
+              <label>Код подтверждения</label>
+            </div>
+            <div class="alert alert-info">
+              <small>Для демонстрации код выводится в консоль сервера</small>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              @click="show2FAModal = false"
+            >
+              Отмена
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              @click="verify2FA"
+              :disabled="!twoFACode || twoFACode.length !== 6"
+            >
+              Подтвердить
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Модальное окно авторизации -->
@@ -631,7 +728,7 @@ async function exportMatchesToExcel() {
           <h5 class="modal-title">Пожалуйста, авторизуйтесь как администратор или игрок</h5>
         </div>
         <div class="modal-body text-center">
-          <div v-if="userInfo && !userInfo.is_authenticated" class="container">
+          <div class="container">
             <form
                 @submit.stop.prevent="onFormSend"
                 style="display: flex; gap: 8px; align-items: center; justify-content: center; padding: 8px; width: 100%">
@@ -639,7 +736,7 @@ async function exportMatchesToExcel() {
                 <input v-model="username" type="text" placeholder="username" required class="input-group-text" style="flex: auto;">
                 <input v-model="password" type="password" placeholder="password" required class="input-group-text"  style="flex: auto;">
 
-                <button type="submit" class="btn btn-primary">Отправить</button>
+                <button type="submit" class="btn btn-primary">Войти</button>
             </form>
           </div>
         </div>
