@@ -147,7 +147,7 @@ async function onUpdateMatch() {
         isLoading.value = true;
         error.value = null;
         
-        // Подготавливаем данные для обновления
+        
         const data = {
             tournament: matchToEdit.value.tournament && matchToEdit.value.tournament !== 'null' ? parseInt(matchToEdit.value.tournament) : null,
             team1: matchToEdit.value.team1 && matchToEdit.value.team1 !== 'null' ? parseInt(matchToEdit.value.team1) : null,
@@ -203,7 +203,6 @@ function getWinnerName(match) {
     return winnerTeam ? winnerTeam.name : 'Не определен';
 }
 
-// Функция для форматирования даты и времени
 function formatDateTime(dateTimeString) {
     if (!dateTimeString) return 'Не указана';
     try {
@@ -220,7 +219,6 @@ function formatDateTime(dateTimeString) {
     }
 }
 
-// Функция для определения класса победителя
 function getWinnerClass(match, teamId) {
     if (!match.winner) return '';
     
@@ -235,12 +233,11 @@ function getWinnerClass(match, teamId) {
     return winnerId === compareId ? 'winner-team' : '';
 }
 
-// Функция сброса фильтра
+
 function resetFilter() {
     selectedPlayerFilter.value = 'all';
 }
 
-// Вычисляемое свойство для отфильтрованных матчей
 const filteredMatches = computed(() => {
     if (selectedPlayerFilter.value === 'all') {
         return matches.value;
@@ -263,7 +260,7 @@ const filteredMatches = computed(() => {
     });
 });
 
-// Проверка прав доступа
+
 const canEditMatches = computed(() => {
   return userInfo.value && userInfo.value.is_authenticated && userInfo.value.is_staff;
 });
@@ -271,7 +268,6 @@ const canEditMatches = computed(() => {
 
 <template class="content">
   <div class="container pt-5">
-    <!-- Состояния загрузки и ошибок -->
     <div v-if="isLoading" class="text-center py-4">
       <div class="spinner-border text-primary" role="status">
         <span class="visually-hidden">Загрузка...</span>
@@ -284,7 +280,7 @@ const canEditMatches = computed(() => {
       <button type="button" class="btn-close" @click="error = null"></button>
     </div>
 
-    <!-- Форма добавления матча (только для админов) -->
+    <!-- Только для админов -->
     <div v-if="canEditMatches" class="card mb-4">
       <div class="card-header bg-primary text-white">
         <h3 class="mb-0">Добавить матч</h3>
@@ -376,7 +372,7 @@ const canEditMatches = computed(() => {
       </div>
     </div>
 
-    <!-- БЛОК ФИЛЬТРА ПО ИГРОКАМ (ТОЛЬКО ДЛЯ АДМИНОВ) -->
+    <!-- Только для админов -->
     <div v-if="canEditMatches" class="card mb-4">
       <div class="card-header bg-info text-white">
         <h3 class="mb-0">
@@ -454,7 +450,7 @@ const canEditMatches = computed(() => {
               </div>
               
               <div class="card-body">
-                <!-- Команда 1 -->
+                
                 <div class="team-row d-flex align-items-center justify-content-between mb-3">
                   <div class="team-info d-flex align-items-center">
                     <div class="team-logo me-2">
@@ -469,12 +465,12 @@ const canEditMatches = computed(() => {
                   </div>
                 </div>
 
-                <!-- VS разделитель -->
+                
                 <div class="vs-divider text-center my-2">
                   <span class="badge bg-secondary">VS</span>
                 </div>
 
-                <!-- Команда 2 -->
+                
                 <div class="team-row d-flex align-items-center justify-content-between mb-3">
                   <div class="team-info d-flex align-items-center">
                     <div class="team-logo me-2">
@@ -489,7 +485,7 @@ const canEditMatches = computed(() => {
                   </div>
                 </div>
 
-                <!-- Победитель -->
+                
                 <div v-if="match.winner" class="winner-section text-center mt-3 p-2 bg-success bg-opacity-10 rounded">
                   <small class="text-success">
                     <i class="bi bi-trophy-fill me-1"></i>
@@ -504,7 +500,7 @@ const canEditMatches = computed(() => {
                 </div>
               </div>
               
-              <!-- Кнопки действий (только для админов) -->
+              <!-- Только для админов -->
               <div v-if="canEditMatches" class="card-footer bg-transparent">
                 <div class="d-flex gap-2 justify-content-end">
                   <button 
@@ -539,7 +535,7 @@ const canEditMatches = computed(() => {
     </div>
   </div>
 
-  <!-- Модальное окно редактирования (только для админов) -->
+  <!-- Модалка для редактирования (Только для админов) -->
   <div v-if="canEditMatches" class="modal fade" id="editMatchModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
@@ -735,16 +731,5 @@ const canEditMatches = computed(() => {
 
 .btn-sm {
   padding: 0.375rem 0.75rem;
-}
-
-@media (max-width: 768px) {
-  .team-name {
-    font-size: 1rem;
-  }
-  
-  .score .badge {
-    font-size: 1rem;
-    min-width: 35px;
-  }
 }
 </style>

@@ -195,7 +195,7 @@ async function onUpdateTournament() {
   }
 }
 
-// Функция для форматирования даты для input[type="date"]
+
 function formatDateForInput(dateString) {
   if (!dateString) return '';
   try {
@@ -206,7 +206,7 @@ function formatDateForInput(dateString) {
   }
 }
 
-// Функция для форматирования даты для отображения
+
 function formatDisplayDate(dateString) {
   if (!dateString) return 'Не указана';
   try {
@@ -247,7 +247,6 @@ const canEditTournaments = computed(() => {
 
 <template class="content">
   <div class="container pt-5">
-    <!-- Состояния загрузки и ошибок -->
     <div v-if="isLoading" class="text-center py-4">
       <div class="spinner-border text-primary" role="status">
         <span class="visually-hidden">Загрузка...</span>
@@ -324,7 +323,7 @@ const canEditTournaments = computed(() => {
             </div>
           </div>
           
-          <!-- Информация о длительности -->
+          
           <div v-if="tournamentToAdd.start_date && tournamentToAdd.end_date" class="mt-3">
             <small class="text-muted">
               Длительность: {{ getTournamentDuration(tournamentToAdd.start_date, tournamentToAdd.end_date) }} дней
@@ -334,7 +333,7 @@ const canEditTournaments = computed(() => {
       </div>
     </div>
 
-    <!-- Блок фильтра по категориям -->
+    
     <div class="card mb-4">
       <div class="card-header bg-info text-white">
         <h3 class="mb-0">
@@ -377,7 +376,7 @@ const canEditTournaments = computed(() => {
       </div>
     </div>
 
-    <!-- Список турниров -->
+    
     <div class="card">
       <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
         <h3 class="mb-0">Список турниров</h3>
@@ -534,7 +533,7 @@ const canEditTournaments = computed(() => {
                 </div>
               </div>
               
-              <!-- Информация о длительности -->
+              
               <div class="col-12" v-if="tournamentToEdit.start_date && tournamentToEdit.end_date">
                 <div class="alert alert-info py-2">
                   <small>
@@ -604,10 +603,4 @@ const canEditTournaments = computed(() => {
   border-bottom: 2px solid rgba(0,0,0,0.125);
 }
 
-/* Адаптивность */
-@media (max-width: 768px) {
-  .tournament-card {
-    margin-bottom: 1rem;
-  }
-}
 </style>

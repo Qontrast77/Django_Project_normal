@@ -108,8 +108,6 @@ class UserViewSet(viewsets.GenericViewSet):
         request.session['faq_code'] = faq_code
         request.session['faq_code_expires'] = (timezone.now() + timedelta(minutes=5)).timestamp()
         
-        # В реальном приложении здесь должен быть отправка кода по email/SMS
-        # Для демонстрации выводим в консоль
         print(f"2FA Code for {request.user.username}: {faq_code}")
         print(f"Код действителен до: {timezone.now() + timedelta(minutes=5)}")
         
@@ -505,7 +503,7 @@ class MatchesViewSet(
             'Статус'
         ]
         
-        # Форматирование заголовков
+        
         for col, header in enumerate(headers, 1):
             cell = ws.cell(row=1, column=col, value=header)
             cell.font = Font(bold=True)
@@ -531,7 +529,7 @@ class MatchesViewSet(
             ws.cell(row=row, column=8, value=match.match_date.strftime('%d.%m.%Y %H:%M') if match.match_date else "Не указана")
             ws.cell(row=row, column=9, value=status)
         
-        # Автоподбор ширины столбцов
+        
         for column in ws.columns: 
             max_length = 0
             column_letter = column[0].column_letter
@@ -544,7 +542,7 @@ class MatchesViewSet(
             adjusted_width = min(max_length + 2, 50)
             ws.column_dimensions[column_letter].width = adjusted_width
         
-        # Создание HTTP ответа
+        
         buffer = io.BytesIO()
         wb.save(buffer)
         buffer.seek(0)

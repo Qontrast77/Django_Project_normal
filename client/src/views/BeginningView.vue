@@ -85,14 +85,14 @@ const filteredMatches = computed(() => {
   });
 });
 
-// Оптимизированная загрузка данных
+
 async function loadAllData() {
   const startTime = performance.now();
   isLoading.value = true;
   error.value = null;
   
   try {
-    // Параллельная загрузка всех данных
+    
     const [teamsRes, playersRes, tournamentsRes, categoriesRes, matchesRes] = await Promise.all([
       axios.get("/api/teams/"),
       axios.get("/api/players/"),
@@ -141,7 +141,7 @@ function closeImageModal() {
   currentImageUrl.value = '';
   currentPlayerName.value = '';
   
-  // Восстанавливаем прокрутку body
+  
   document.body.style.overflow = '';
 }
 
@@ -159,7 +159,7 @@ function onKeydown(event) {
   }
 }
 
-// Вспомогательные функции
+
 function getTeamName(teamId) {
   if (!teamId) return 'Не указана';
   if (typeof teamId === 'object') return teamId.name;
@@ -188,7 +188,7 @@ function isTeamWinner(match, teamId) {
   return winnerId === compareId;
 }
 
-// Получаем команды для турнира (оптимизированно)
+// Получаем команды для турнира
 function getTournamentTeamsPreview(tournamentId) {
   const tournamentMatches = matches.value.filter(match => {
     const matchTournamentId = match.tournament?.id || match.tournament;
@@ -204,7 +204,7 @@ function getTournamentTeamsPreview(tournamentId) {
   return Array.from(teamNames).slice(0, 3);
 }
 
-// Получаем матчи для турнира
+
 function getTournamentMatchesCount(tournamentId) {
   return matches.value.filter(match => {
     const matchTournamentId = match.tournament?.id || match.tournament;
@@ -212,7 +212,7 @@ function getTournamentMatchesCount(tournamentId) {
   }).length;
 }
 
-// Функции для блока команд
+
 function getTeamLogo(logoPath) {
   if (!logoPath) return '/static/images/default-team-logo.png';
   if (logoPath.startsWith('http') || logoPath.startsWith('data:')) {
@@ -236,18 +236,17 @@ function getPlayerPhoto(photoPath) {
   }
   let url = photoPath.startsWith('/') ? photoPath : `/${photoPath}`;
   
-  // Добавляем timestamp для принудительного обновления изображения
-  const timestamp = Date.now();
-  if (url.includes('?')) {
-    url += `&_=${timestamp}`;
-  } else {
-    url += `?_=${timestamp}`;
-  }
   
-  return url;
-}
+    const timestamp = Date.now();
+    if (url.includes('?')) {
+      url += `&_=${timestamp}`;
+    } else {
+      url += `?_=${timestamp}`;
+    }
+    
+    return url;
+  }
 
-// Обработчик ошибок изображений
 function handleImageError(event) {
   console.log('Изображение не загружено:', event.target.src);
   event.target.style.display = 'none';
@@ -278,7 +277,6 @@ async function exportMatchesToExcel() {
     }
 }
 
-// Загрузка при монтировании
 onMounted(() => {
   loadAllData();
   // Добавляем обработчик клавиши ESC
@@ -288,7 +286,6 @@ onMounted(() => {
 
 <template>
   <div class="dashboard">
-    <!-- Заголовок -->
     <div class="header">
       <h1>🏆 Киберспортивная Турнирная Система</h1>
       <p>Управление турнирами, командами и матчами</p>
@@ -331,7 +328,7 @@ onMounted(() => {
       </div>
     </div>
     
-    <!-- Индикатор загрузки -->
+    
     <div v-if="isLoading" class="loading-state">
       <div class="spinner-container">
         <div class="spinner"></div>
@@ -340,7 +337,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Ошибка -->
+    
     <div v-else-if="error" class="error-state">
       <div class="error-container">
         <div class="error-icon">❌</div>
@@ -352,9 +349,8 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Основной контент -->
+    
     <div v-else class="content">
-      <!-- Статистика -->
       <div class="stats-section">
         <div class="stats-grid">
           <div class="stat-card">
@@ -387,7 +383,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Блок команд -->
+      
       <div class="card mb-4">
         <div class="card-header bg-primary text-white">
           <h2>Команды</h2>
@@ -438,7 +434,7 @@ onMounted(() => {
               <p class="text-muted">Добавьте команды через раздел "Команды"</p>
             </div>
 
-            <!-- Кнопка просмотра всех команд -->
+            <
             <div v-if="teams.length > 4" class="col-12 text-center mt-3">
               <router-link to="/teams" class="btn btn-outline-primary">
                 <i class="bi bi-arrow-right me-2"></i>
@@ -449,7 +445,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Блок игроков -->
+      
       <div class="card mb-4">
         <div class="card-header bg-success text-white">
           <h2>Игроки</h2>
@@ -503,7 +499,7 @@ onMounted(() => {
               <p class="text-muted">Добавьте игроков через раздел "Игроки"</p>
             </div>
 
-            <!-- Кнопка просмотра всех игроков -->
+            
             <div v-if="players.length > 4" class="col-12 text-center mt-3">
               <router-link to="/players" class="btn btn-outline-success">
                 <i class="bi bi-arrow-right me-2"></i>
@@ -514,7 +510,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Турниры -->
+      
       <div class="section">
         <div class="section-header">
           <h2>🎯 Активные Турниры</h2>
@@ -554,7 +550,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Матчи -->
+      
       <div class="section">
         <div class="section-header">
           <h2>
@@ -610,7 +606,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Быстрые действия -->
+      
       <div class="quick-actions">
         <h2>🚀 Быстрые действия</h2>
         <div class="actions-grid">
@@ -638,7 +634,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Модальное окно для просмотра изображения -->
+    <!-- Модалка для просмотра изображения -->
     <div 
       v-if="showImageModal" 
       class="image-modal-backdrop"
@@ -669,7 +665,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Модальное окно 2FA -->
+    <!-- Модалка для 2FA -->
     <div v-if="show2FAModal" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
       <div class="modal-dialog">
         <div class="modal-content">
@@ -720,7 +716,7 @@ onMounted(() => {
     </div>
   </div>
 
-  <!-- Модальное окно авторизации -->
+  <!-- Модалка для авторизации -->
   <div v-if="userInfo && !userInfo.is_authenticated" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
@@ -752,7 +748,6 @@ onMounted(() => {
   background: #000;
 }
 
-/* Заголовок */
 .header {
   background: #000;
   color: white;
@@ -777,7 +772,6 @@ onMounted(() => {
   opacity: 0.7;
 }
 
-/* Состояния загрузки и ошибки */
 .loading-state, .error-state {
   display: flex;
   justify-content: center;
@@ -831,14 +825,12 @@ onMounted(() => {
   100% { transform: rotate(360deg); }
 }
 
-/* Основной контент */
 .content {
   padding: 30px;
   max-width: 1200px;
   margin: 0 auto;
 }
 
-/* Статистика */
 .stats-section {
   margin-bottom: 40px;
 }
@@ -882,7 +874,6 @@ onMounted(() => {
   letter-spacing: 1px;
 }
 
-/* Блок команд */
 .team-card {
   transition: all 0.3s ease;
   border: 1px solid #e9ecef;
@@ -903,7 +894,6 @@ onMounted(() => {
   box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
 
-/* Блок игроков */
 .player-card {
   transition: all 0.3s ease;
   border: 1px solid #e9ecef;
@@ -934,7 +924,6 @@ onMounted(() => {
   background-color: #f8f9fa;
 }
 
-/* Секции */
 .section {
   background: white;
   border-radius: 15px;
@@ -967,7 +956,6 @@ onMounted(() => {
   color: #2980b9;
 }
 
-/* Турниры */
 .tournaments-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -1032,7 +1020,6 @@ onMounted(() => {
   margin-right: 5px;
 }
 
-/* Матчи */
 .matches-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
@@ -1104,7 +1091,6 @@ onMounted(() => {
   font-size: 0.9em;
 }
 
-/* Пустые состояния */
 .empty-state {
   text-align: center;
   padding: 60px 20px;
@@ -1121,7 +1107,6 @@ onMounted(() => {
   color: #5a6c7d;
 }
 
-/* Быстрые действия */
 .quick-actions {
   background: white;
   border-radius: 15px;
@@ -1170,7 +1155,6 @@ onMounted(() => {
   font-size: 1.1em;
 }
 
-/* Модальное окно для изображений */
 .image-modal-backdrop {
   position: fixed;
   top: 0;
@@ -1268,74 +1252,6 @@ onMounted(() => {
   to { 
     opacity: 1;
     transform: scale(1);
-  }
-}
-
-/* Адаптивность */
-@media (max-width: 768px) {
-  .header {
-    padding: 30px 20px;
-  }
-  
-  .header h1 {
-    font-size: 2em;
-  }
-  
-  .content {
-    padding: 20px;
-  }
-  
-  .section {
-    padding: 20px;
-  }
-  
-  .section-header {
-    flex-direction: column;
-    gap: 15px;
-    align-items: flex-start;
-  }
-  
-  .match-teams {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-  
-  .vs {
-    order: -1;
-  }
-  
-  .stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  }
-  
-  .tournaments-grid,
-  .matches-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .actions-grid {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  }
-  
-  .team-card .row,
-  .player-card .row {
-    flex-direction: column;
-    text-align: center;
-  }
-  
-  .team-card .col-4,
-  .player-card .col-4 {
-    text-align: center !important;
-    margin-top: 15px;
-  }
-  
-  .image-modal-content {
-    margin: 20px;
-    padding: 15px;
-  }
-  
-  .image-modal-img {
-    max-height: 60vh;
   }
 }
 </style>

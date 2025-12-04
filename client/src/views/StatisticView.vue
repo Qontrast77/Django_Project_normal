@@ -82,12 +82,12 @@ onMounted(() => {
   <div class="container pt-5">
     <!-- Показываем контент ТОЛЬКО для администраторов -->
     <div v-if="userInfo && userInfo.is_authenticated && userInfo.is_staff">
-      <!-- Заголовок -->
+      
       <div class="text-center mb-5">
         <h1 class="display-4 text-white">📊 Статистика Турнирной Системы</h1>
       </div>
 
-      <!-- Индикатор загрузки -->
+      
       <div v-if="loading" class="text-center py-5">
         <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
           <span class="visually-hidden">Загрузка...</span>
@@ -95,16 +95,14 @@ onMounted(() => {
         <p class="mt-3 text-white">Загрузка статистики...</p>
       </div>
 
-      <!-- Ошибка -->
+      
       <div v-if="error" class="alert alert-danger text-center">
         <i class="bi bi-exclamation-triangle me-2"></i>
         {{ error }}
       </div>
 
-      <!-- Контент статистики -->
+      
       <div class="row g-4">
-        
-        <!-- Статистика команд -->
         <div class="col-12" v-if="teamStats">
           <div class="card stats-card">
             <div class="card-header bg-primary text-white">
@@ -155,8 +153,7 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Остальные блоки статистики остаются без изменений -->
-        <!-- Статистика игроков -->
+        
         <div class="col-12" v-if="playerStats">
           <div class="card stats-card">
             <div class="card-header bg-success text-white">
@@ -205,7 +202,7 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Статистика турниров -->
+        
         <div class="col-12" v-if="tournamentStats">
           <div class="card stats-card">
             <div class="card-header bg-warning text-dark">
@@ -256,7 +253,7 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Статистика матчей -->
+        
         <div class="col-12" v-if="matchStats">
           <div class="card stats-card">
             <div class="card-header bg-info text-white">
@@ -315,7 +312,7 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Статистика категорий -->
+        
         <div class="col-12" v-if="categoryStats">
           <div class="card stats-card">
             <div class="card-header bg-dark text-white">
@@ -365,7 +362,6 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Сообщение о перенаправлении (краткое) -->
     <div v-else class="text-center py-5">
       <div class="card bg-light">
         <div class="card-body py-5">
@@ -379,7 +375,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* Стили остаются без изменений */
+
 .stats-card {
   border: none;
   border-radius: 15px;
@@ -426,20 +422,5 @@ onMounted(() => {
   border: none;
   border-radius: 10px;
   margin-bottom: 0;
-}
-
-/* Адаптивность */
-@media (max-width: 768px) {
-  .stat-number {
-    font-size: 1.5rem;
-  }
-  
-  .stat-label {
-    font-size: 0.8rem;
-  }
-  
-  .display-4 {
-    font-size: 2rem;
-  }
 }
 </style>

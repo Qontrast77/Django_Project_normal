@@ -127,24 +127,22 @@ async function onUpdateTeam() {
   }
 }
 
-// Улучшенная функция для получения URL изображения
+// Функция для получения URL изображения
 function getImageUrl(imagePath) {
   if (!imagePath) return null;
   
-  // Если это уже полный URL, возвращаем как есть
   if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
     return imagePath;
   }
   
-  // Если это относительный путь, добавляем базовый URL
   return imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
 }
 
-// Обработчик ошибок изображений - предотвращает цикл
+
 function handleImageError(event) {
   console.log('Изображение не загружено:', event.target.src);
   event.target.style.display = 'none';
-  event.target.onerror = null; // Убираем обработчик чтобы избежать цикла
+  event.target.onerror = null; 
 }
 
 // Проверка прав доступа
@@ -155,7 +153,6 @@ const canEditTeams = computed(() => {
 
 <template class="content">
   <div class="content container pt-5">
-    <!-- Состояния загрузки и ошибок -->
     <div v-if="isLoading" class="text-center py-4">
       <div class="spinner-border text-primary" role="status">
         <span class="visually-hidden">Загрузка...</span>
@@ -224,7 +221,7 @@ const canEditTeams = computed(() => {
       </div>
     </div>
 
-    <!-- Список команд -->
+    
     <div class="card">
       <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
         <h3 class="mb-0">Список команд</h3>
@@ -241,7 +238,7 @@ const canEditTeams = computed(() => {
           <div v-for="team in teams" :key="team.id" class="col-12 col-md-6 col-lg-4 col-xl-3">
             <div class="team-card card h-100">
               <div class="card-body text-center">
-                <!-- Логотип команды -->
+                
                 <div class="team-logo mb-3" style="width: 120px; height: 120px; margin: 0 auto;">
                   <img 
                     v-if="getImageUrl(team.logo)" 
@@ -256,10 +253,9 @@ const canEditTeams = computed(() => {
                   </div>
                 </div>
                 
-                <!-- Название команды -->
+                
                 <h5 class="card-title">{{ team.name }}</h5>
                 
-                <!-- Дата создания -->
                 <p class="text-muted small">
                   <i class="bi bi-calendar me-1"></i>
                   {{ new Date(team.created_at).toLocaleDateString('ru-RU') }}
@@ -301,7 +297,7 @@ const canEditTeams = computed(() => {
     </div>
   </div>
 
-  <!-- Модальное окно редактирования (только для админов) -->
+  <!-- Модалка для редактирования (только для админов) -->
   <div v-if="canEditTeams" class="modal fade" id="editTeamModal" tabindex="-1">
     <div class="modal-dialog">
       <div class="modal-content">
@@ -331,7 +327,7 @@ const canEditTeams = computed(() => {
             </div>
           </div>
           
-          <!-- Текущее лого -->
+          
           <div class="mb-3" v-if="teamToEdit.logo">
             <p class="text-muted mb-2">Текущее лого:</p>
             <div style="width: 150px; height: 150px; margin: 0 auto;">

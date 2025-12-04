@@ -176,7 +176,6 @@ async function onUpdatePlayer() {
   }
 }
 
-// Функция для получения URL изображения с timestamp (как в TeamsView)
 function getImageUrl(imagePath) {
   if (!imagePath) return null;
   
@@ -186,7 +185,6 @@ function getImageUrl(imagePath) {
   
   let url = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
   
-  // Добавляем timestamp для предотвращения кэширования (как в TeamsView)
   const timestamp = Date.now();
   if (url.includes('?')) {
     url += `&t=${timestamp}`;
@@ -197,7 +195,6 @@ function getImageUrl(imagePath) {
   return url;
 }
 
-// Обработчик ошибок изображений (как в TeamsView)
 function handleImageError(event) {
   console.log('Изображение не загружено:', event.target.src);
   event.target.style.display = 'none';
@@ -219,7 +216,6 @@ const canEditPlayers = computed(() => {
 
 <template class="content">
   <div class="container pt-5">
-    <!-- Состояния загрузки и ошибок -->
     <div v-if="isLoading" class="text-center py-4">
       <div class="spinner-border text-primary" role="status">
         <span class="visually-hidden">Загрузка...</span>
@@ -232,7 +228,7 @@ const canEditPlayers = computed(() => {
       <button type="button" class="btn-close" @click="error = null"></button>
     </div>
 
-    <!-- Форма добавления игрока (только для админов) -->
+    <!-- Только для админов -->
     <div v-if="canEditPlayers" class="card mb-4">
       <div class="card-header bg-primary text-white">
         <h3 class="mb-0">Добавить игрока</h3>
@@ -298,7 +294,7 @@ const canEditPlayers = computed(() => {
             </div>
           </div>
           
-          <!-- Предпросмотр изображения -->
+          
           <div v-if="playerImageUrl" class="mt-3">
             <p class="text-muted mb-2">Предпросмотр:</p>
             <img 
@@ -312,7 +308,7 @@ const canEditPlayers = computed(() => {
       </div>
     </div>
 
-    <!-- Список игроков -->
+    
     <div class="card">
       <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
         <h3 class="mb-0">Список игроков</h3>
@@ -329,7 +325,7 @@ const canEditPlayers = computed(() => {
           <div v-for="player in players" :key="player.id" class="col-12 col-md-6 col-lg-4 col-xl-3">
             <div class="player-card card h-100">
               <div class="card-body text-center">
-                <!-- Фото игрока -->
+
                 <div class="player-photo mb-3" style="width: 120px; height: 120px; margin: 0 auto;">
                   <img 
                     v-if="getImageUrl(player.photo)" 
@@ -356,7 +352,7 @@ const canEditPlayers = computed(() => {
                 </p>
               </div>
               
-              <!-- Кнопки действий (только для админов) -->
+              <!-- Только для админов -->
               <div v-if="canEditPlayers" class="card-footer bg-transparent">
                 <div class="d-flex gap-2 justify-content-center">
                   <button 
@@ -391,7 +387,7 @@ const canEditPlayers = computed(() => {
     </div>
   </div>
 
-  <!-- Модальное окно редактирования (только для админов) -->
+  <!-- Модалка редактирования (Только для админов) -->
   <div v-if="canEditPlayers" class="modal fade" id="editPlayerModal" tabindex="-1">
     <div class="modal-dialog">
       <div class="modal-content">
@@ -446,7 +442,7 @@ const canEditPlayers = computed(() => {
                 </div>
               </div>
               
-              <!-- Текущее фото -->
+              
               <div class="col-12" v-if="playerToEdit.photo">
                 <p class="text-muted mb-2">Текущее фото:</p>
                 <div style="width: 150px; height: 150px; margin: 0 auto;">
@@ -464,7 +460,7 @@ const canEditPlayers = computed(() => {
                 </div>
               </div>
               
-              <!-- Загрузка нового фото -->
+              
               <div class="col-12">
                 <div class="form-floating">
                   <input
@@ -479,7 +475,7 @@ const canEditPlayers = computed(() => {
                 </div>
               </div>
               
-              <!-- Предпросмотр нового фото -->
+              
               <div class="col-12" v-if="playerEditImageUrl">
                 <p class="text-muted mb-2">Предпросмотр нового фото:</p>
                 <img 
@@ -549,16 +545,5 @@ const canEditPlayers = computed(() => {
 
 .card-header {
   border-bottom: 2px solid rgba(0,0,0,0.125);
-}
-
-@media (max-width: 768px) {
-  .player-photo {
-    width: 100px !important;
-    height: 100px !important;
-  }
-  
-  .placeholder-photo i {
-    font-size: 2.5rem !important;
-  }
 }
 </style>

@@ -125,7 +125,6 @@ function truncateDescription(description, maxLength = 50) {
 
 <template class="content">
   <div class="container pt-5">
-    <!-- Состояния загрузки и ошибок -->
     <div v-if="isLoading" class="text-center py-4">
       <div class="spinner-border text-primary" role="status">
         <span class="visually-hidden">Загрузка...</span>
@@ -182,7 +181,6 @@ function truncateDescription(description, maxLength = 50) {
       </div>
     </div>
 
-    <!-- Список категорий -->
     <div class="card">
       <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
         <h3 class="mb-0">Список категорий турниров</h3>
@@ -243,7 +241,6 @@ function truncateDescription(description, maxLength = 50) {
     </div>
   </div>
 
-  <!-- Модальное окно редактирования -->
   <div class="modal fade" id="editCategoryModal" tabindex="-1">
     <div class="modal-dialog">
       <div class="modal-content">
@@ -343,12 +340,5 @@ function truncateDescription(description, maxLength = 50) {
 
 .card-header {
   border-bottom: 2px solid rgba(0,0,0,0.125);
-}
-
-/* Адаптивность */
-@media (max-width: 768px) {
-  .category-card {
-    margin-bottom: 1rem;
-  }
 }
 </style>

@@ -9,7 +9,7 @@ import { storeToRefs } from "pinia";
 const userStore = useUserStore();
 const { userInfo } = storeToRefs(userStore);
 
-// Проверка, показывать ли вкладку "Категории"
+// Проверка, показывать ли вкладку Категории
 const showCategoriesTab = computed(() => {
   return userInfo.value && userInfo.value.is_authenticated && userInfo.value.is_staff;
 });
@@ -25,22 +25,19 @@ const playerNickname = computed(() => {
 });
 
 onBeforeMount(() => {
-  // Настраиваем axios только один раз
   const csrfToken = Cookies.get("csrftoken");
   if (csrfToken) {
     axios.defaults.headers.common['X-CSRFToken'] = csrfToken;
   }
   axios.defaults.withCredentials = true;
   
-  // Опционально: настраиваем таймауты
-  axios.defaults.timeout = 10000; // 10 секунд
+  axios.defaults.timeout = 10000;
 })
 </script>
 
 
 <template>
   <div id="app">
-    <!-- Навигация -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
       <div class="container">
         <router-link class="navbar-brand" to="/">
@@ -73,7 +70,7 @@ onBeforeMount(() => {
                 <i class="bi bi-trophy me-1"></i>Турниры
               </router-link>
             </li>
-            <!-- Вкладка "Категории" только для админов -->
+            <!-- Вкладка Категории только для админов -->
             <li v-if="showCategoriesTab" class="nav-item">
               <router-link class="nav-link" to="/categories">
                 <i class="bi bi-tags me-1"></i>Категории
@@ -116,7 +113,6 @@ onBeforeMount(() => {
       </div>
     </nav>
 
-    <!-- Основной контент -->
     <main class="main-content">
       <router-view/>
     </main>
@@ -156,18 +152,5 @@ onBeforeMount(() => {
 .main-content {
   min-height: calc(100vh - 76px);
   background: #000000;
-}
-
-/* Адаптивность */
-@media (max-width: 768px) {
-  .navbar-nav {
-    text-align: center;
-  }
-  
-  .user-info {
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    margin-top: 10px;
-    padding-top: 10px;
-  }
 }
 </style>
