@@ -124,7 +124,10 @@ async function onTournamentAdd() {
 
 async function onRemoveClick(tournament) {
   if (!confirm(`Удалить турнир "${tournament.name}"?`)) return;
-  
+  if (userInfo.value.is_staff && !userInfo.value.second) {
+        alert('Для редактирования требуется двухфакторная аутентификация. Нажмите кнопку "Войти по второму фактору" на главной странице.');
+        return;
+    }
   try {
     await axios.delete(`/api/tournaments/${tournament.id}/`);
     await fetchTournaments();

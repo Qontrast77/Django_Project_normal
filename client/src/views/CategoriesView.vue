@@ -67,7 +67,10 @@ async function onCategoryAdd() {
 
 async function onRemoveClick(category) {
   if (!confirm(`Удалить категорию "${category.name}"?`)) return;
-  
+  if (userInfo.value.is_staff && !userInfo.value.second) {
+        alert('Для редактирования требуется двухфакторная аутентификация. Нажмите кнопку "Войти по второму фактору" на главной странице.');
+        return;
+    }
   try {
     await axios.delete(`/api/tournament-categories/${category.id}/`);
     await fetchCategories();

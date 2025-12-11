@@ -77,7 +77,10 @@ async function onTeamAdd() {
 
 async function onRemoveClick(team) {
   if (!confirm(`Удалить команду "${team.name}"?`)) return;
-  
+  if (userInfo.value.is_staff && !userInfo.value.second) {
+        alert('Для редактирования требуется двухфакторная аутентификация. Нажмите кнопку "Войти по второму фактору" на главной странице.');
+        return;
+    }
   try {
     await axios.delete(`/api/teams/${team.id}/`);
     await fetchTeams();

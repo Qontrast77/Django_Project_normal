@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
+import pyotp
 
 class Team(models.Model):
     name = models.TextField("Название команды")
@@ -21,6 +22,7 @@ class Player(models.Model):
     photo = models.ImageField("Фото игрока", null=True, blank=True, upload_to="tournaments_img")
     team = models.ForeignKey("Team", verbose_name="Команда", on_delete=models.CASCADE, null=True, blank=True)
     user = models.OneToOneField("auth.User", verbose_name="Пользователь", on_delete=models.CASCADE, null=True, blank=True)
+    totp_key = models.CharField(max_length=128, null=True)
     
     class Meta:
         verbose_name = "Игрок"
@@ -28,6 +30,12 @@ class Player(models.Model):
     
     def __str__(self) -> str:
         return f"{self.name} ({self.nickname})"
+    
+    def save(self, *args, **kwargs):
+        if self.id is None: 
+            self.totp_key = pyotp.random_base32()
+
+        super().save(*args, **kwargs)
 
 class TournamentCategory(models.Model):
     name = models.TextField("Категория турнира")
@@ -98,9 +106,8 @@ def create_user_for_player(sender, instance, created, **kwargs):
                 password=password,  # Пароль = имя игрока
                 first_name=instance.name
             )
-            
-            # Сохраняем связь
             instance.user = user
+            instance.totp_key = pyotp.random_base32()
             instance.save()
             
             print(f"Создан пользователь для игрока {instance.name}:")

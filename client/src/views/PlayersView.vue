@@ -110,7 +110,10 @@ async function onPlayerAdd() {
 
 async function onRemoveClick(player) {
   if (!confirm(`Удалить игрока "${player.name}"?`)) return;
-  
+  if (userInfo.value.is_staff && !userInfo.value.second) {
+        alert('Для редактирования требуется двухфакторная аутентификация. Нажмите кнопку "Войти по второму фактору" на главной странице.');
+        return;
+    }
   try {
     await axios.delete(`/api/players/${player.id}/`);
     await fetchPlayers();

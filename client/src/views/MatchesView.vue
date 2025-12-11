@@ -118,6 +118,10 @@ async function onMatchAdd() {
 }
 
 async function onRemoveClick(match) {
+  if (userInfo.value.is_staff && !userInfo.value.second) {
+        alert('Для редактирования требуется двухфакторная аутентификация. Нажмите кнопку "Войти по второму фактору" на главной странице.');
+        return;
+    }
     if (confirm('Вы уверены, что хотите удалить этот матч?')) {
         try {
             await axios.delete(`/api/matches/${match.id}/`);

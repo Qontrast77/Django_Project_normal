@@ -4,18 +4,18 @@ import axios from "axios";
 
 export const useUserStore = defineStore("userStore", () => {
     const userInfo = ref({
-        is_authenticated: false,
-        is_doublefaq: false
+        is_authenticated: false
     })
-    
+    const second = ref(false);  
     async function checkLogin() {
         try {
             let r = await axios.get("/api/user/info/")
             userInfo.value = r.data;
+            second.value = r.data.second;
         } catch (error) {
             userInfo.value = {
                 is_authenticated: false,
-                is_doublefaq: false
+                second: false    
             };
         }
     }
@@ -31,6 +31,7 @@ export const useUserStore = defineStore("userStore", () => {
         } catch (error) {
             console.error("Login error:", error);
             return false;
+            
         }
     }
 
@@ -42,37 +43,12 @@ export const useUserStore = defineStore("userStore", () => {
         } finally {
             userInfo.value = {
                 is_authenticated: false,
-                is_doublefaq: false
+                second: false,
             };
         }
     }
 
-    // Генерация кода 2FA на сервере
-    async function generate2FACode() {
-        try {
-            let r = await axios.post("/api/user/generate-2fa/")
-            return r.data
-        } catch (error) {
-            return { success: false, message: 'Ошибка при генерации кода' }
-        }
-    }
 
-    // Проверка кода 2FA на сервере
-    async function verify2FACode(inputCode) {
-        try {
-            let r = await axios.post("/api/user/verify-2fa/", {
-                code: inputCode,
-            })
-            
-            if (r.data.success) {
-                await checkLogin(); // Обновляем статус
-            }
-            
-            return r.data
-        } catch (error) {
-            return { success: false, message: 'Ошибка при проверке кода' }
-        }
-    }
 
     onBeforeMount(async () => {
         await checkLogin();
@@ -82,8 +58,7 @@ export const useUserStore = defineStore("userStore", () => {
         userInfo,
         checkLogin,
         login,
+        second,
         logout,
-        generate2FACode,
-        verify2FACode
     }
 })

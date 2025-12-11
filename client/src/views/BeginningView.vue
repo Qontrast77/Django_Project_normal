@@ -1,6 +1,6 @@
 <script setup>
 import axios from 'axios';
-import { onMounted, ref, computed } from 'vue';
+import { onMounted, ref, computed, watch} from 'vue';
 import { useUserStore } from '@/stores/user_store';
 import { storeToRefs } from "pinia";
 
@@ -12,38 +12,15 @@ const {
     userInfo,
 } = storeToRefs(userStore)
 
+const key = ref('');
+const show2FAModal = ref(false);
+const qrcodeUrl = ref();
+const totpUrl = ref();
+
 async function onFormSend() {
     await userStore.login(username.value, password.value)
 }
 
-async function handleLogout() {
-    await userStore.logout();
-}
-
-// 2FA переменные
-const twoFACode = ref('');
-const show2FAModal = ref(false);
-
-// Функции для 2FA модального окна
-async function open2FAModal() {
-    const result = await userStore.generate2FACode();
-    if (result.success) {
-        twoFACode.value = '';
-        show2FAModal.value = true;
-    } else {
-        alert('Ошибка генерации кода: ' + result.message);
-    }
-}
-
-async function verify2FA() {
-    const result = await userStore.verify2FACode(twoFACode.value);
-    if (result.success) {
-        show2FAModal.value = false;
-        alert('Двухфакторная аутентификация успешно пройдена!');
-    } else {
-        alert('Ошибка: ' + result.message);
-    }
-}
 
 // Реактивные данные
 const teams = ref([]);
@@ -277,14 +254,52 @@ async function exportMatchesToExcel() {
     }
 }
 
+
+function open2FAModal() {
+  show2FAModal.value = true;
+}
+async function onActivate() {
+    await axios.post("/api/user/second-login/", {
+        key: key.value  
+    })
+    await userStore.checkLogin();  
+    if (userInfo.value.second) {
+        show2FAModal.value = false;
+    }
+}
+async function getTotpKey() {
+    let r = await axios.get('/api/user/get-totp/')
+    totpUrl.value = r.data.url;
+}
+watch(totpUrl, async () => {
+    qrcodeUrl.value = await QRCode.toDataURL(totpUrl.value);
+})
+
 onMounted(() => {
   loadAllData();
   // Добавляем обработчик клавиши ESC
   document.addEventListener('keydown', onKeydown);
 });
+
 </script>
 
 <template>
+
+<div class="container">
+        <div v-if="userInfo && userInfo.is_authenticated" class="container pt-5">
+            <h3 style="color:#fff; margin:0px">Здравствуй, {{userInfo.username}}</h3>
+            <div v-if="userInfo.second" class="alert alert-success mt-2">
+                Двухфакторная аутентификация активна
+            </div>
+            <div v-if="userInfo.is_staff && !userInfo.second" class="alert alert-warning mt-2 d-flex justify-content-between align-items-center">
+                <span>Для редактирования данных требуется двухфакторная аутентификация</span>
+                <button @click="open2FAModal" class="btn btn-primary btn-sm">
+                    Войти по второму фактору
+                </button>
+            </div>
+          </div>
+          </div>
+
   <div class="dashboard">
     <div class="header">
       <h1>🏆 Киберспортивная Турнирная Система</h1>
@@ -304,23 +319,7 @@ onMounted(() => {
           </span>
         </template>
         
-        <!-- Статус 2FA -->
-        <div class="content"> 
-        <div v-if="userInfo.is_staff" class="2fa-status mt-2">
-          <div v-if="userInfo.is_doublefaq" class="alert alert-success alert-sm">
-            <i class="bi bi-shield-check"></i> Двухфакторная аутентификация активна
-          </div>
-          <div v-else class="alert alert-primary alert-sm d-flex justify-content-between align-items-center">
-            <span>
-              <i class="bi bi-shield-exclamation"></i> 
-              Для редактирования данных требуется двухфакторная аутентификация
-            </span>
-            <button @click="open2FAModal" class="btn btn-primary btn-sm">
-              Войти по второму фактору
-            </button>
-          </div>
-        </div>
-      </div>  
+        
         </div>
       
       <div v-if="!isLoading && !error" class="load-info">
@@ -664,57 +663,39 @@ onMounted(() => {
         </div>
       </div>
     </div>
-
-    <!-- Модалка для 2FA -->
-    <div v-if="show2FAModal" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Двухфакторная аутентификация</h5>
-            <button
-              type="button"
-              class="btn-close"
-              @click="show2FAModal = false"
-              aria-label="Close"
-            ></button>
-          </div>
-          <div class="modal-body">
-            <p>Введите 6-значный код, отправленный вам</p>
-            <div class="form-floating mb-3">
-              <input
-                v-model="twoFACode"
-                type="text"
-                class="form-control"
-                placeholder="000000"
-                maxlength="6"
-              >
-              <label>Код подтверждения</label>
-            </div>
-            <div class="alert alert-info">
-              <small>Для демонстрации код выводится в консоль сервера</small>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              @click="show2FAModal = false"
-            >
-              Отмена
-            </button>
-            <button
-              type="button"
-              class="btn btn-primary"
-              @click="verify2FA"
-              :disabled="!twoFACode || twoFACode.length !== 6"
-            >
-              Подтвердить
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
+
+  <div v-if="show2FAModal" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Двухфакторная аутентификация</h5>
+                <button
+                    type="button"
+                    class="btn-close"
+                    @click="show2FAModal = false"
+                    aria-label="Close"
+                ></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" v-model="key" class="form-control mb-2" placeholder="Введите 6-значный код">
+                <button @click="onActivate" class="btn btn-primary mb-2">Активировать второй фактор</button>
+                
+               
+            </div>
+            
+            <div class="modal-footer">
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    @click="show2FAModal = false"
+                >
+                    Закрыть
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
   <!-- Модалка для авторизации -->
   <div v-if="userInfo && !userInfo.is_authenticated" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">

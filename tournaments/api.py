@@ -2,6 +2,7 @@ from django.http import HttpResponse
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment
 import io
+import pyotp
 from rest_framework import status
 from django.utils import timezone
 from datetime import timedelta
@@ -23,63 +24,23 @@ from .serializers import (
     TournamentCategoriesCRSerializer, TournamentCategoriesUDSerializer
 )
 
-class IsDoubleFAVerified(permissions.BasePermission):
-    """
-    Permission проверяет, что пользователь прошел двухфакторную аутентификацию
-    и сессия 2FA еще не истекла.
-    """
-    
-    def has_permission(self, request, view):
-        if not request.user.is_authenticated:
-            return False
-            
-        is_doublefaq = request.session.get('doublefaq_active', False)
-        doublefaq_expires = request.session.get('doublefaq_expires')
-        
-        # Проверяем активна ли 2FA и не истекла ли
-        if is_doublefaq and doublefaq_expires:
-            if timezone.now().timestamp() > doublefaq_expires:
-                request.session['doublefaq_active'] = False
-                return False
-            return True
-        
-        return False
-
 class UserViewSet(viewsets.GenericViewSet):
-    permission_classes = []
+    permission_classes = [permissions.AllowAny]
 
     @action(detail=False, url_path="info", methods=["GET"])
     def get_info(self, request, *args, **kwargs):
-        # Проверяем 2FA статус из сессии
-        is_doublefaq = request.session.get('doublefaq_active', False)
-        doublefaq_expires = request.session.get('doublefaq_expires')
-        
-        # Проверяем не истекла ли сессия 2FA
-        if is_doublefaq and doublefaq_expires:
-            if timezone.now().timestamp() > doublefaq_expires:
-                is_doublefaq = False
-                request.session['doublefaq_active'] = False
-        
+       
         user_info = {
             "username": request.user.username,
             "is_authenticated": request.user.is_authenticated,
             "is_staff": request.user.is_staff,
-            "is_doublefaq": is_doublefaq,
+      
         }
+        if self.request.user.is_authenticated:
+            user_info.update({
+                'second': self.request.session.get('second') or False, 
+            })
         
-        # Добавляем информацию о команде для игроков
-        if request.user.is_authenticated and not request.user.is_staff:
-            try:
-                player = Player.objects.get(user=request.user)
-                user_info["team_id"] = player.team.id if player.team else None
-                user_info["team_name"] = player.team.name if player.team else None
-                user_info["player_id"] = player.id
-                user_info["player_nickname"] = player.nickname
-            except Player.DoesNotExist:
-                user_info["team_id"] = None
-                user_info["team_name"] = None
-                user_info["player_id"] = None
-                user_info["player_nickname"] = None
         
         return Response(user_info)
 
@@ -99,64 +60,20 @@ class UserViewSet(viewsets.GenericViewSet):
             'success': False,
         })
     
-    @action(detail=False, url_path="generate-2fa", methods=["POST"])
-    def generate_2fa(self, request, *args, **kwargs):
-        # Генерируем 6-значный код
-        faq_code = str(random.randint(100000, 999999))
-        
-        # Сохраняем код в сессии с временем жизни 5 минут
-        request.session['faq_code'] = faq_code
-        request.session['faq_code_expires'] = (timezone.now() + timedelta(minutes=5)).timestamp()
-        
-        print(f"2FA Code for {request.user.username}: {faq_code}")
-        print(f"Код действителен до: {timezone.now() + timedelta(minutes=5)}")
-        
-        return Response({
-            'success': True,
-            'message': 'Код 2FA сгенерирован'
-        })
-    
-    @action(detail=False, url_path="verify-2fa", methods=["POST"])
-    def verify_2fa(self, request, *args, **kwargs):
-        code = request.data.get('code', '')
-        stored_code = request.session.get('faq_code')
-        code_expires = request.session.get('faq_code_expires')
-        
-        # Проверяем существование и срок кода
-        if not stored_code or not code_expires:
-            return Response({
-                'success': False,
-                'message': 'Код не найден, запросите новый'
-            })
-        
-        if timezone.now().timestamp() > code_expires:
-            return Response({
-                'success': False,
-                'message': 'Код истек, запросите новый'
-            })
-        
-        if code == stored_code:
-            # Устанавливаем 2FA сессию на 1 минуту
-            request.session['doublefaq_active'] = True
-            request.session['doublefaq_expires'] = (timezone.now() + timedelta(minutes=1)).timestamp()
-            
-            # Очищаем использованный код
-            del request.session['faq_code']
-            del request.session['faq_code_expires']
-            
+    @action(detail=False, url_path="second-login", methods=["POST"])
+    def second_login(self, *args, **kwargs):
+        player = Player.objects.get(user=self.request.user) 
+        key = player.totp_key  
+        t = pyotp.totp.TOTP(key)
+        input_code = self.request.data.get('key', '')
+        if input_code == t.now():
+            self.request.session['second'] = True
             return Response({
                 'success': True,
-                'message': 'Двухфакторная аутентификация пройдена'
             })
-        else:
-            return Response({
-                'success': False,
-                'message': 'Неверный код'
-            })
-    
+
     @action(detail=False, url_path="logout", methods=["POST"])
     def logout_user(self, request, *args, **kwargs):
-        # Очищаем все сессии
         request.session.flush()
         logout(request)
         return Response({
@@ -176,7 +93,7 @@ class TeamsViewSet(
     
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [permissions.IsAuthenticated(), IsDoubleFAVerified()]
+            return [permissions.IsAuthenticated()]
         return [permissions.IsAuthenticated()]
     
     def get_serializer_class(self):
@@ -230,7 +147,7 @@ class PlayersViewSet(
     
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [permissions.IsAuthenticated(), IsDoubleFAVerified()]
+            return [permissions.IsAuthenticated()]
         return [permissions.IsAuthenticated()]
     
     def get_serializer_class(self):
@@ -279,7 +196,7 @@ class TournamentCategoriesViewSet(
     
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [permissions.IsAuthenticated(), IsDoubleFAVerified()]
+            return [permissions.IsAuthenticated()]
         return [permissions.IsAuthenticated()]
     
     def get_serializer_class(self):
@@ -330,7 +247,7 @@ class TournamentsViewSet(
     
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [permissions.IsAuthenticated(), IsDoubleFAVerified()]
+            return [permissions.IsAuthenticated()]
         return [permissions.IsAuthenticated()]
     
     def get_serializer_class(self):
@@ -404,7 +321,7 @@ class MatchesViewSet(
     
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [permissions.IsAuthenticated(), IsDoubleFAVerified()]
+            return [permissions.IsAuthenticated()]
         return [permissions.IsAuthenticated()]
     
     def get_serializer_class(self):
