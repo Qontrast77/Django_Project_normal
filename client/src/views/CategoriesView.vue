@@ -7,10 +7,6 @@ const categories = ref([]);
 const isLoading = ref(false);
 const error = ref(null);
 
-onBeforeMount(() => {
-  axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
-})
-
 async function fetchCategories() {
     try {
         isLoading.value = true;

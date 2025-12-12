@@ -16,10 +16,6 @@ const isLoading = ref(false);
 const error = ref(null);
 const selectedPlayerFilter = ref('all');
 
-onBeforeMount(() => {
-  axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
-})
-
 async function fetchMatches() {
     try {
         isLoading.value = true;

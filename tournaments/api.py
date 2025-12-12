@@ -60,6 +60,19 @@ class UserViewSet(viewsets.GenericViewSet):
             'success': False,
         })
     
+    @action(url_path="get-totp", methods=['GET'], detail=False)
+    def get_totp(self, *args, **kwargs):
+        player = Player.objects.get(user=self.request.user)
+        player.totp_key = pyotp.random_base32()
+        player.save()
+        url = pyotp.totp.TOTP(player.totp_key).provisioning_uri(
+            name=self.request.user.username, issuer_name="MyApp"
+        )
+
+        return Response({
+            "url": url
+        })
+    
     @action(detail=False, url_path="second-login", methods=["POST"])
     def second_login(self, *args, **kwargs):
         player = Player.objects.get(user=self.request.user) 

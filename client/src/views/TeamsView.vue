@@ -12,10 +12,6 @@ const teams = ref([]);
 const isLoading = ref(false);
 const error = ref(null);
 
-onBeforeMount(() => {
-  axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
-})
-
 async function fetchTeams() {
     try {
         isLoading.value = true;

@@ -3,6 +3,7 @@ import axios from 'axios';
 import { onMounted, ref, computed, watch} from 'vue';
 import { useUserStore } from '@/stores/user_store';
 import { storeToRefs } from "pinia";
+import QRCode from 'qrcode';
 
 const userStore = useUserStore()
 
@@ -267,6 +268,7 @@ async function onActivate() {
         show2FAModal.value = false;
     }
 }
+
 async function getTotpKey() {
     let r = await axios.get('/api/user/get-totp/')
     totpUrl.value = r.data.url;
@@ -274,6 +276,7 @@ async function getTotpKey() {
 watch(totpUrl, async () => {
     qrcodeUrl.value = await QRCode.toDataURL(totpUrl.value);
 })
+
 
 onMounted(() => {
   loadAllData();
@@ -291,7 +294,7 @@ onMounted(() => {
             <div v-if="userInfo.second" class="alert alert-success mt-2">
                 Двухфакторная аутентификация активна
             </div>
-            <div v-if="userInfo.is_staff && !userInfo.second" class="alert alert-warning mt-2 d-flex justify-content-between align-items-center">
+            <div v-if="userInfo.is_staff && !userInfo.second" class="alert alert-danger mt-2 d-flex justify-content-between align-items-center">
                 <span>Для редактирования данных требуется двухфакторная аутентификация</span>
                 <button @click="open2FAModal" class="btn btn-primary btn-sm">
                     Войти по второму фактору
@@ -679,9 +682,12 @@ onMounted(() => {
             </div>
             <div class="modal-body">
                 <input type="text" v-model="key" class="form-control mb-2" placeholder="Введите 6-значный код">
-                <button @click="onActivate" class="btn btn-primary mb-2">Активировать второй фактор</button>
-                
-               
+                <button @click="onActivate" class="btn btn-primary">Активировать второй фактор</button> 
+                <button class="btn btn-primary" style="margin-left:70px" @click="getTotpKey">Запросить ключ</button>
+            <br>
+            <div style="padding: 1rem  0">{{ totpUrl  }}</div>
+            <br>
+            <img :src="qrcodeUrl" alt="">
             </div>
             
             <div class="modal-footer">

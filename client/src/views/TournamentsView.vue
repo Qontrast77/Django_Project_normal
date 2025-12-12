@@ -14,10 +14,6 @@ const isLoading = ref(false);
 const error = ref(null);
 const selectedCategoryFilter = ref('all'); // Фильтр по категории
 
-onBeforeMount(() => {
-  axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
-})
-
 async function fetchTournaments() {
     try {
         isLoading.value = true;
